@@ -2,6 +2,8 @@
 
 A civic information portal for Mbale City Council, with municipal operations reporting and registers for business licences, property rates, and citizen service requests. The web portal and standalone terminal menu use the same SQLite demonstration registry.
 
+For a non-technical walkthrough, explanation of dashboard figures, presentation script, and question guide, read [USER_GUIDE_AND_PRESENTATION.md](./USER_GUIDE_AND_PRESENTATION.md).
+
 ## Run locally
 
 1. Install Python 3.10 or later.
