@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Business Licenses{% endblock %}
 {% block content %}
-<div class="page-heading"><div><p class="eyebrow">Revenue &amp; local commerce</p><h1>Business &amp; Trading Licenses</h1><p>Register city businesses, review annual license fees, and manage renewal status.</p></div><button class="btn btn-primary" type="button" onclick="openBusinessModal()">＋ Register business</button></div>
+<div class="page-heading"><div><h1>Business &amp; Trading Licenses</h1><p>Mbale City Council business register, annual license assessments, and renewal status.</p></div><div class="report-actions"><a class="btn btn-secondary" href="{{ url_for('export_csv',dataset='businesses') }}">Export CSV</a><button class="btn btn-primary" type="button" onclick="openBusinessModal()">Register business</button></div></div>
 <section class="panel">
   <form class="filters" method="get" action="{{ url_for('businesses') }}">
     <select class="filter-control" name="division" aria-label="Filter by division"><option value="">All divisions</option>{% for division in divisions %}<option value="{{ division }}" {{ 'selected' if selected_division == division else '' }}>{{ division }}</option>{% endfor %}</select>

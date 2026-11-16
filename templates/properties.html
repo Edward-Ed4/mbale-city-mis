@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Property Rates{% endblock %}
 {% block content %}
-<div class="page-heading"><div><p class="eyebrow">Property &amp; land rates</p><h1>Property Register</h1><p>Review assessed values and annual rates, and record property rate payments.</p></div><span class="badge badge-cleared">{{ properties|length }} registered plots</span></div>
+<div class="page-heading"><div><h1>Property &amp; Land Rates</h1><p>Mbale City Council property register, annual rate assessments, and payment records.</p></div><div class="report-actions"><a class="btn btn-secondary" href="{{ url_for('export_csv',dataset='properties') }}">Export CSV</a><span class="badge badge-cleared">{{ properties|length }} registered plots</span></div></div>
 <section class="panel"><div class="filters"><input class="filter-control" id="propertySearch" type="search" placeholder="Search plot, owner, ward or division..." aria-label="Search property records"><select class="filter-control" id="propertyStatus" aria-label="Filter by payment status"><option value="">All payment statuses</option><option>Cleared</option><option>Arrears</option></select></div>
 <div class="table-wrap"><table id="propertyTable"><thead><tr><th>Plot / Owner</th><th>Property Type</th><th>Division / Ward</th><th>Assessed Annual Rate</th><th>Payment Status</th><th>Last Payment</th><th>Action</th></tr></thead><tbody>
 {% for property in properties %}<tr data-search="{{ (property.plot_no ~ ' ' ~ property.owner_name ~ ' ' ~ property.ward ~ ' ' ~ property.division)|lower }}" data-status="{{ property.payment_status|lower }}">

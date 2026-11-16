@@ -1,10 +1,12 @@
+import csv
 import hmac
+import io
 import os
 import secrets
 import sqlite3
 from datetime import datetime
 
-from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, flash, redirect, render_template, request, session, url_for
 
 from database import DATABASE_PATH, get_db, init_db
 
@@ -51,8 +53,33 @@ def date_short(value):
 
 DIVISIONS = ("Industrial City Division", "Northern City Division")
 BUSINESS_CATEGORIES = ("Retail", "Hospitality", "Agro-Processing", "Hardware", "Transport")
-WARDS = ("Republic Street", "Naboa Road", "Pallisa Road", "Kumi Road", "Wanale Ward", "Namatala", "Busamaga", "Wanale")
+WARDS = (
+    "Senior Quarters", "Maluku Ward", "Nkoma", "Mooni", "Nabuyonga",
+    "Bugema", "Republic Street", "Naboa Road", "Pallisa Road", "Kumi Road",
+    "Namatala", "Busamaga", "Wanale",
+)
 COMPLAINT_CATEGORIES = ("Garbage Collection", "Street Lighting", "Road Maintenance", "Water & Drainage")
+EXPORT_COLUMNS = {
+    "businesses": (
+        ("License number", "license_no"), ("Business name", "business_name"),
+        ("Owner name", "owner_name"), ("Phone", "phone"), ("Category", "category"),
+        ("Division", "division"), ("Street / ward", "street_ward"),
+        ("Annual fee (UGX)", "annual_fee_ugx"), ("Status", "status"),
+        ("Registered", "created_at"),
+    ),
+    "properties": (
+        ("Plot number", "plot_no"), ("Owner name", "owner_name"),
+        ("Property type", "property_type"), ("Division", "division"),
+        ("Ward", "ward"), ("Annual rate (UGX)", "annual_rate_ugx"),
+        ("Payment status", "payment_status"), ("Last paid date", "last_paid_date"),
+    ),
+    "complaints": (
+        ("Ticket number", "ticket_no"), ("Citizen name", "citizen_name"),
+        ("Phone", "phone"), ("Division", "division"), ("Location", "location_detail"),
+        ("Category", "category"), ("Description", "description"),
+        ("Priority", "priority"), ("Status", "status"), ("Logged at", "logged_at"),
+    ),
+}
 
 
 def _form_value(name):
@@ -108,6 +135,32 @@ def dashboard():
         pending_requests=pending_count,
         divisions=divisions,
         activity=activity,
+    )
+
+
+@app.get("/export/<dataset>")
+def export_csv(dataset):
+    columns = EXPORT_COLUMNS.get(dataset)
+    if columns is None:
+        abort(404)
+    with get_db() as connection:
+        rows = connection.execute(f"SELECT * FROM {dataset} ORDER BY id").fetchall()
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow([label for label, _ in columns])
+    for row in rows:
+        values = []
+        for _, name in columns:
+            value = "" if row[name] is None else str(row[name])
+            if value.startswith(("=", "+", "-", "@", "\t", "\r")):
+                value = "'" + value
+            values.append(value)
+        writer.writerow(values)
+    filename = f"mbale-city-{dataset}.csv"
+    return Response(
+        "\ufeff" + output.getvalue(),
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -258,13 +311,13 @@ def database_explorer():
             count = connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
             records = connection.execute(f"SELECT * FROM {table_name} ORDER BY id DESC LIMIT 5").fetchall()
             tables.append({"name": table_name, "columns": columns, "count": count, "records": records})
-    return render_template("database_explorer.html", active_page="database", tables=tables, database_path=DATABASE_PATH)
+    return render_template("database_explorer.html", active_page="database", tables=tables)
 
 
 @app.post("/database/reset")
 def reset_demo_data():
     init_db(reset=True)
-    flash("Demo data has been restored to the original sample records.", "success")
+    flash("The default municipal registry has been restored.", "success")
     return redirect(url_for("database_explorer"))
 
 

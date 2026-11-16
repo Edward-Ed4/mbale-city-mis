@@ -66,14 +66,14 @@ def _seed_rows(connection):
     now = datetime.now()
     businesses = [
         ("MCC-TL-2026-001", "Elgon View Guest House", "Wambwa Geofrey", "+256 772 310 481", "Hospitality", "Industrial City Division", "Republic Street", 850000, "Paid", now - timedelta(days=32)),
-        ("MCC-TL-2026-002", "Namatala Fresh Produce", "Namukose Sarah", "+256 701 448 209", "Retail", "Industrial City Division", "Namatala", 320000, "Pending", now - timedelta(days=28)),
+        ("MCC-TL-2026-002", "Namatala Fresh Produce", "Namukose Sarah", "+256 701 448 209", "Retail", "Industrial City Division", "Maluku Ward", 320000, "Pending", now - timedelta(days=28)),
         ("MCC-TL-2026-003", "Masaba Hardware Centre", "Masaba Denis", "+256 782 614 552", "Hardware", "Northern City Division", "Naboa Road", 650000, "Paid", now - timedelta(days=24)),
-        ("MCC-TL-2026-004", "Wanale Coffee Works", "Nandutu Grace", "+256 759 420 187", "Agro-Processing", "Northern City Division", "Wanale Ward", 1200000, "Paid", now - timedelta(days=20)),
-        ("MCC-TL-2026-005", "Busamaga Taxi Services", "Watsemwa Brenda", "+256 776 503 611", "Transport", "Northern City Division", "Busamaga", 480000, "Expired", now - timedelta(days=18)),
+        ("MCC-TL-2026-004", "Wanale Coffee Works", "Nandutu Grace", "+256 759 420 187", "Agro-Processing", "Northern City Division", "Mooni", 1200000, "Paid", now - timedelta(days=20)),
+        ("MCC-TL-2026-005", "Busamaga Taxi Services", "Watsemwa Brenda", "+256 776 503 611", "Transport", "Northern City Division", "Senior Quarters", 480000, "Expired", now - timedelta(days=18)),
         ("MCC-TL-2026-006", "Pallisa Road Pharmacy", "Wekesa Andrew", "+256 703 882 146", "Retail", "Industrial City Division", "Pallisa Road", 560000, "Pending", now - timedelta(days=14)),
         ("MCC-TL-2026-007", "Kumi Road Restaurant", "Nabirye Esther", "+256 751 267 930", "Hospitality", "Industrial City Division", "Kumi Road", 720000, "Paid", now - timedelta(days=11)),
-        ("MCC-TL-2026-008", "Republic Street Traders", "Wafula Martin", "+256 784 119 365", "Retail", "Industrial City Division", "Republic Street", 390000, "Paid", now - timedelta(days=8)),
-        ("MCC-TL-2026-009", "Naboa Road Grain Mill", "Nakalembe Ruth", "+256 740 552 814", "Agro-Processing", "Northern City Division", "Naboa Road", 940000, "Pending", now - timedelta(days=4)),
+        ("MCC-TL-2026-008", "Republic Street Traders", "Wafula Martin", "+256 784 119 365", "Retail", "Industrial City Division", "Nkoma", 390000, "Paid", now - timedelta(days=8)),
+        ("MCC-TL-2026-009", "Naboa Road Grain Mill", "Nakalembe Ruth", "+256 740 552 814", "Agro-Processing", "Northern City Division", "Bugema", 940000, "Pending", now - timedelta(days=4)),
     ]
     connection.executemany(
         """INSERT INTO businesses
@@ -84,13 +84,13 @@ def _seed_rows(connection):
 
     properties = [
         ("PLT-IND-104", "Wambwa Geofrey", "Commercial", "Industrial City Division", "Republic Street", 1450000, "Cleared", now - timedelta(days=12)),
-        ("PLT-IND-118", "Namukose Sarah", "Residential", "Industrial City Division", "Namatala", 420000, "Arrears", None),
+        ("PLT-IND-118", "Namukose Sarah", "Residential", "Industrial City Division", "Maluku Ward", 420000, "Arrears", None),
         ("PLT-NOR-026", "Masaba Denis", "Commercial", "Northern City Division", "Naboa Road", 980000, "Cleared", now - timedelta(days=31)),
-        ("PLT-NOR-041", "Nandutu Grace", "Industrial", "Northern City Division", "Wanale", 2250000, "Arrears", None),
-        ("PLT-NOR-053", "Watsemwa Brenda", "Residential", "Northern City Division", "Busamaga", 510000, "Cleared", now - timedelta(days=16)),
+        ("PLT-NOR-041", "Nandutu Grace", "Industrial", "Northern City Division", "Mooni", 2250000, "Arrears", None),
+        ("PLT-NOR-053", "Watsemwa Brenda", "Residential", "Northern City Division", "Senior Quarters", 510000, "Cleared", now - timedelta(days=16)),
         ("PLT-IND-133", "Wekesa Andrew", "Commercial", "Industrial City Division", "Pallisa Road", 1120000, "Arrears", None),
         ("PLT-IND-147", "Nabirye Esther", "Commercial", "Industrial City Division", "Kumi Road", 870000, "Cleared", now - timedelta(days=7)),
-        ("PLT-NOR-068", "Wafula Martin", "Residential", "Northern City Division", "Naboa Road", 360000, "Arrears", None),
+        ("PLT-NOR-068", "Wafula Martin", "Residential", "Northern City Division", "Nkoma", 360000, "Arrears", None),
         ("PLT-IND-159", "Nakalembe Ruth", "Industrial", "Industrial City Division", "Republic Street", 1980000, "Cleared", now - timedelta(days=3)),
     ]
     connection.executemany(
@@ -103,12 +103,12 @@ def _seed_rows(connection):
     complaints = [
         ("MCC-SR-2026-01", "Nabirye Esther", "+256 751 267 930", "Industrial City Division", "Namatala Market, Block B", "Garbage Collection", "Missed waste collection has left refuse near the market entrance.", "High", "Open", now - timedelta(days=2)),
         ("MCC-SR-2026-02", "Wekesa Andrew", "+256 703 882 146", "Industrial City Division", "Republic Street, near taxi stage", "Street Lighting", "Two street lights are not working along the pedestrian crossing.", "Medium", "In Progress", now - timedelta(days=3)),
-        ("MCC-SR-2026-03", "Masaba Denis", "+256 782 614 552", "Northern City Division", "Naboa Road, trading centre", "Road Maintenance", "A large pothole is affecting traffic and boda-boda access.", "High", "Open", now - timedelta(days=5)),
-        ("MCC-SR-2026-04", "Namukose Sarah", "+256 701 448 209", "Industrial City Division", "Namatala drainage channel", "Water & Drainage", "Drainage is blocked and water is pooling near homes.", "High", "In Progress", now - timedelta(days=6)),
+        ("MCC-SR-2026-03", "Masaba Denis", "+256 782 614 552", "Northern City Division", "Nabuyonga stream crossing, Nkoma", "Road Maintenance", "A large pothole is affecting traffic and boda-boda access.", "High", "Open", now - timedelta(days=5)),
+        ("MCC-SR-2026-04", "Namukose Sarah", "+256 701 448 209", "Industrial City Division", "Maluku Ward drainage channel", "Water & Drainage", "Drainage is blocked and water is pooling near homes.", "High", "In Progress", now - timedelta(days=6)),
         ("MCC-SR-2026-05", "Watsemwa Brenda", "+256 776 503 611", "Northern City Division", "Busamaga Community Road", "Road Maintenance", "Road surface requires grading after recent heavy rain.", "Low", "Resolved", now - timedelta(days=8)),
-        ("MCC-SR-2026-06", "Nandutu Grace", "+256 759 420 187", "Northern City Division", "Wanale Ward, upper access road", "Garbage Collection", "Household waste has not been collected this week.", "Medium", "Open", now - timedelta(days=9)),
-        ("MCC-SR-2026-07", "Wafula Martin", "+256 784 119 365", "Industrial City Division", "Pallisa Road junction", "Street Lighting", "The junction lamp is out, making evening crossing difficult.", "Medium", "Resolved", now - timedelta(days=12)),
-        ("MCC-SR-2026-08", "Nakalembe Ruth", "+256 740 552 814", "Northern City Division", "Naboa Road, near primary school", "Water & Drainage", "Open drain needs clearing before it overflows into the school path.", "High", "Open", now - timedelta(days=14)),
+        ("MCC-SR-2026-06", "Nandutu Grace", "+256 759 420 187", "Northern City Division", "Mooni access road", "Garbage Collection", "Household waste has not been collected this week.", "Medium", "Open", now - timedelta(days=9)),
+        ("MCC-SR-2026-07", "Wafula Martin", "+256 784 119 365", "Industrial City Division", "Pallisa Road junction, Bugema", "Street Lighting", "The junction lamp is out, making evening crossing difficult.", "Medium", "Resolved", now - timedelta(days=12)),
+        ("MCC-SR-2026-08", "Nakalembe Ruth", "+256 740 552 814", "Northern City Division", "Naboa Road, near Bugema school", "Water & Drainage", "Open drain needs clearing before it overflows into the school path.", "High", "Open", now - timedelta(days=14)),
         ("MCC-SR-2026-09", "Wambwa Geofrey", "+256 772 310 481", "Industrial City Division", "Kumi Road, taxi stage", "Road Maintenance", "Request to repair uneven road surface at the stage entrance.", "Low", "In Progress", now - timedelta(days=16)),
     ]
     connection.executemany(

@@ -1,6 +1,6 @@
 # Mbale City Council Information System
 
-A database-driven, menu-driven prototype for Mbale City Council. The Flask dashboard and standalone terminal menu share a SQLite database with realistic demonstration records.
+A civic information portal for Mbale City Council, with municipal operations reporting and registers for business licences, property rates, and citizen service requests. The web portal and standalone terminal menu use the same SQLite demonstration registry.
 
 ## Run locally
 
@@ -36,6 +36,7 @@ The service uses Gunicorn, checks the dashboard health endpoint, generates a `SE
 ## Demo operations and safety
 
 - Use the sidebar to manage licenses, property payments, citizen service requests, and inspect table structure and row counts.
-- The database explorer's **Reset Demo Data** action deletes current demo rows and recreates the original sample records.
+- Export business, property, and citizen-request registers as CSV files; print the Municipal Operations Summary as an official statement.
+- The database explorer's **Restore Default Registry** action restores the original sample records.
 - `SECRET_KEY` can be set in the environment; otherwise a process-specific random key is generated.
 - This is a presentation prototype. Before handling real citizen or financial data, add production identity/access controls, CSRF/session configuration, auditing, backups, and a persistent managed database.
