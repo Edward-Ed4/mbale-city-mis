@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Executive Dashboard{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">City performance overview</p><h1>Executive Dashboard</h1><p>A live snapshot of revenue, local business activity, property records, and citizen service delivery.</p></div><a class="btn btn-secondary" href="{{ url_for('database_explorer') }}">View database ↗</a></div>
+<div class="cards">
+  <article class="card metric"><div class="metric-top"><span>Total Revenue Collected</span><span class="metric-icon">UGX</span></div><div class="metric-value">{{ total_revenue|currency }}</div><div class="metric-foot">Paid licenses and cleared property rates</div></article>
+  <article class="card metric"><div class="metric-top"><span>Active Trading Licenses</span><span class="metric-icon">▣</span></div><div class="metric-value">{{ active_licenses }}</div><div class="metric-foot">Licenses currently marked paid</div></article>
+  <article class="card metric"><div class="metric-top"><span>Registered Properties</span><span class="metric-icon">⌂</span></div><div class="metric-value">{{ registered_properties }}</div><div class="metric-foot">Properties in the city register</div></article>
+  <article class="card metric"><div class="metric-top"><span>Pending Service Requests</span><span class="metric-icon">◎</span></div><div class="metric-value">{{ pending_requests }}</div><div class="metric-foot">Open or in-progress citizen cases</div></article>
+</div>
+<div class="dashboard-grid">
+  <section class="panel"><div class="panel-heading"><div><h2>Division Overview</h2><p>Registered activity by city division</p></div></div><div class="panel-body"><div class="division-grid">{% for division in divisions %}<div class="division-card"><strong>{{ division.division }}</strong><div class="division-stats"><span><b>{{ division.businesses }}</b> licenses</span><span><b>{{ division.properties }}</b> properties</span><span><b>{{ division.requests }}</b> requests</span></div></div>{% endfor %}</div></div></section>
+  <section class="panel"><div class="panel-heading"><div><h2>Recent Activity</h2><p>Latest license and service request updates</p></div></div><div class="panel-body"><div class="activity-list">{% for item in activity %}<div class="activity-item"><span class="activity-dot"></span><div><strong>{{ item.title }}</strong><span>{{ item.kind }} · {{ item.detail }}</span></div><time>{{ item.happened_at|date_short }}</time></div>{% else %}<div class="empty-state">No recent activity to display.</div>{% endfor %}</div></div></section>
+</div>
+<section class="panel" style="margin-top:18px"><div class="panel-heading"><div><h2>Municipal Service Modules</h2><p>Quick access to day-to-day service delivery workflows</p></div></div><div class="panel-body toolbar"><a class="btn btn-primary" href="{{ url_for('businesses') }}">Manage business licenses</a><a class="btn btn-secondary" href="{{ url_for('properties') }}">Review property rates</a><a class="btn btn-secondary" href="{{ url_for('complaints') }}">Track citizen requests</a></div></section>
+{% endblock %}

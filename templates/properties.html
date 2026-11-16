@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Property Rates{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Property &amp; land rates</p><h1>Property Register</h1><p>Review assessed values and annual rates, and record property rate payments.</p></div><span class="badge badge-cleared">{{ properties|length }} registered plots</span></div>
+<section class="panel"><div class="filters"><input class="filter-control" id="propertySearch" type="search" placeholder="Search plot, owner, ward or division..." aria-label="Search property records"><select class="filter-control" id="propertyStatus" aria-label="Filter by payment status"><option value="">All payment statuses</option><option>Cleared</option><option>Arrears</option></select></div>
+<div class="table-wrap"><table id="propertyTable"><thead><tr><th>Plot / Owner</th><th>Property Type</th><th>Division / Ward</th><th>Assessed Annual Rate</th><th>Payment Status</th><th>Last Payment</th><th>Action</th></tr></thead><tbody>
+{% for property in properties %}<tr data-search="{{ (property.plot_no ~ ' ' ~ property.owner_name ~ ' ' ~ property.ward ~ ' ' ~ property.division)|lower }}" data-status="{{ property.payment_status|lower }}">
+  <td><div class="primary-text">{{ property.plot_no }}</div><div class="secondary-text">{{ property.owner_name }}</div></td><td>{{ property.property_type }}</td><td><div>{{ property.division }}</div><div class="secondary-text">{{ property.ward }}</div></td><td class="money">{{ property.annual_rate_ugx|currency }}</td><td><span class="badge badge-{{ property.payment_status|lower }}">{{ property.payment_status }}</span></td><td>{{ property.last_paid_date|date_short }}</td><td>{% if property.payment_status == 'Arrears' %}<form method="post" action="{{ url_for('record_payment',property_id=property.id) }}" data-confirm="Record payment for {{ property.plot_no }}?"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary btn-sm">Record payment</button></form>{% else %}<span class="secondary-text">Up to date</span>{% endif %}</td>
+</tr>{% else %}<tr><td colspan="7"><div class="empty-state"><strong>No properties registered</strong>Property records will appear here.</div></td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}
+{% block scripts %}<script>
+  function filterProperties(){const search=document.getElementById('propertySearch').value.trim().toLowerCase();const status=document.getElementById('propertyStatus').value.toLowerCase();document.querySelectorAll('#propertyTable tbody tr[data-search]').forEach(row=>row.hidden=!(row.dataset.search.includes(search)&&(!status||row.dataset.status===status)));}
+  document.getElementById('propertySearch').addEventListener('input',filterProperties);document.getElementById('propertyStatus').addEventListener('change',filterProperties);
+</script>{% endblock %}
