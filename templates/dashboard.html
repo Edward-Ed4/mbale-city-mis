@@ -1,16 +1,46 @@
 {% extends "base.html" %}
-{% block title %}Municipal Operations Summary{% endblock %}
+{% block title %}Statistical Analysis of Sanitation Inequalities in Mbale City: A Data-Driven Sanitation Monitoring Dashboard for Evidence-Based Decision-Making{% endblock %}
 {% block content %}
-<div class="page-heading"><div><h1>Municipal Operations Summary</h1><p>Mbale City Council revenue, business licensing, property rates, and citizen service delivery.</p></div><div class="report-actions"><button class="btn btn-secondary" type="button" onclick="window.print()">Print Official Statement</button><a class="btn btn-secondary" href="{{ url_for('database_explorer') }}">Registry structure</a></div></div>
+<div class="heading">
+  <div><h2>Overview &amp; Problem Statement</h2><p>Sanitation inequality, public-health risks, and the case for ward-level evidence in Mbale City.</p></div>
+  <div class="toolbar"><a class="btn btn-primary" href="{{ url_for('export_csv', dataset='wards') }}">Export Ward Data CSV</a><button class="btn" type="button" onclick="window.print()">Print Overview</button></div>
+</div>
+<div class="hook">In Mbale City, <em>4 in every 10 households</em> lack access to improved sanitation facilities.</div>
 <div class="cards">
-  <article class="card metric"><div class="metric-top"><span>Total Revenue Collected</span><span class="metric-icon"><svg class="civic-icon"><use href="#icon-revenue"/></svg></span></div><div class="metric-value">{{ total_revenue|currency }}</div><div class="metric-foot">Paid licenses and cleared property rates</div></article>
-  <article class="card metric"><div class="metric-top"><span>Active Trading Licenses</span><span class="metric-icon"><svg class="civic-icon"><use href="#icon-license"/></svg></span></div><div class="metric-value">{{ active_licenses }}</div><div class="metric-foot">Licenses currently marked paid</div></article>
-  <article class="card metric"><div class="metric-top"><span>Registered Properties</span><span class="metric-icon"><svg class="civic-icon"><use href="#icon-property"/></svg></span></div><div class="metric-value">{{ registered_properties }}</div><div class="metric-foot">Properties in the city register</div></article>
-  <article class="card metric"><div class="metric-top"><span>Pending Service Requests</span><span class="metric-icon"><svg class="civic-icon"><use href="#icon-service"/></svg></span></div><div class="metric-value">{{ pending_requests }}</div><div class="metric-foot">Open or in-progress citizen cases</div></article>
+  <article class="card metric"><div class="metric-label">City Sanitation Coverage</div><div class="metric-value">59.85%</div><div class="metric-note">Census 2024 benchmark reported in the presentation</div></article>
+  <article class="card metric"><div class="metric-label">Unimproved Sanitation</div><div class="metric-value">40.18%</div><div class="metric-note">Far from the SDG 6.2 target; source percentages differ by 0.03 points due to rounding/source reporting</div></article>
+  <article class="card metric"><div class="metric-label">Model Observations</div><div class="metric-value">58</div><div class="metric-note">Ward observations reported for the beta regression</div></article>
+  <article class="card metric"><div class="metric-label">High-Vulnerability Areas</div><div class="metric-value">14</div><div class="metric-note">Illustrative register classification; validate before policy use</div></article>
 </div>
-<div class="dashboard-grid">
-  <section class="panel"><div class="panel-heading"><div><h2>Division Overview</h2><p>Registered activity by city division</p></div></div><div class="panel-body"><div class="division-grid">{% for division in divisions %}<div class="division-card"><strong>{{ division.division }}</strong><div class="division-stats"><span><b>{{ division.businesses }}</b> licenses</span><span><b>{{ division.properties }}</b> properties</span><span><b>{{ division.requests }}</b> requests</span></div></div>{% endfor %}</div></div></section>
-  <section class="panel"><div class="panel-heading"><div><h2>Recent Activity</h2><p>Latest license and service request updates</p></div></div><div class="panel-body"><div class="activity-list">{% for item in activity %}<div class="activity-item"><span class="activity-dot"></span><div><strong>{{ item.title }}</strong><span>{{ item.kind }} · {{ item.detail }}</span></div><time>{{ item.happened_at|date_short }}</time></div>{% else %}<div class="empty-state">No recent activity to display.</div>{% endfor %}</div></div></section>
+<div class="notice"><strong>Data integrity note:</strong> The 59.85% and 40.18% figures and the model results are transcribed from the presentation, which cites the Bugisu Sub-region Census 2024 Profile Report. The supplied slides do not include the underlying ward dataset. Ward names beyond the examples, household totals, sanitation percentages, vulnerability labels, and programme statuses in this prototype are illustrative demonstration data—not UBOS ward estimates.</div>
+<p class="source">The presentation identifies low-income households, females, persons with disabilities, children under five, and residents of informal and flood-prone communities among those who may be disproportionately affected.</p>
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-heading"><div><h3>Why sanitation inequality matters</h3><p>Consequences highlighted in the research presentation</p></div></div>
+    <div class="panel-body grid-2">
+      <div class="info-box"><h4>Public health</h4><p>Increased exposure to waterborne diseases and higher household healthcare expenditure.</p></div>
+      <div class="info-box"><h4>Environment</h4><p>Pollution and contamination can affect neighbourhoods and water sources.</p></div>
+      <div class="info-box"><h4>Privacy, dignity &amp; safety</h4><p>Low sanitation access can disproportionately affect women and girls.</p></div>
+      <div class="info-box"><h4>Climate resilience</h4><p>Flood-prone communities can face greater sanitation risks during climate-related events.</p></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-heading"><div><h3>Illustrative division register</h3><p>Computed from the demonstration ward rows; not census estimates</p></div></div>
+    <div class="panel-body">
+      {% for division in division_summary %}
+      <div class="bar-row"><span>{{ division.division }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ division.illustrative_average }}%"></div></div><strong>{{ division.illustrative_average }}%</strong></div>
+      {% else %}<p class="source">No ward records available.</p>{% endfor %}
+      <p class="source">Showing {{ ward_count }} illustrative register rows. {{ high_vulnerability_count }} are tagged high vulnerability for demonstration only.</p>
+    </div>
+  </section>
 </div>
-<section class="panel" style="margin-top:18px"><div class="panel-heading"><div><h2>Council Service Registers</h2><p>Access municipal licensing, property rate, and citizen service records.</p></div></div><div class="panel-body toolbar"><a class="btn btn-primary" href="{{ url_for('businesses') }}">Business licenses</a><a class="btn btn-secondary" href="{{ url_for('properties') }}">Property rates</a><a class="btn btn-secondary" href="{{ url_for('complaints') }}">Citizen requests</a></div></section>
+<section class="panel">
+  <div class="panel-heading"><div><h3>Research objective</h3><p>From descriptive statistics to evidence-informed sanitation planning</p></div></div>
+  <div class="panel-body grid-3">
+    <div class="info-box"><h4>Measure</h4><p>Organize household sanitation indicators by ward and identify geographic differences.</p></div>
+    <div class="info-box"><h4>Analyze</h4><p>Present the beta regression results reported in the study and explain their statistical significance.</p></div>
+    <div class="info-box"><h4>Prioritize</h4><p>Use validated coverage, vulnerability, and programme data to identify where follow-up may be needed.</p></div>
+  </div>
+</section>
+<p class="source">Source for reported citywide benchmark and model results: presentation citing the Bugisu Sub-region Census 2024 Profile Report. These slide figures should be checked against the original publication before external policy or academic use.</p>
 {% endblock %}

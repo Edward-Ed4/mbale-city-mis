@@ -1,8 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Database Explorer{% endblock %}
+{% block title %}Census Data Explorer · Mbale City{% endblock %}
 {% block content %}
-<div class="page-heading"><div><h1>Municipal Registry Records</h1><p>Relational register structure, record totals, and current database service status.</p></div><form method="post" action="{{ url_for('reset_demo_data') }}" data-confirm="Restore the default business, property and citizen request registry records?"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger">Restore Default Registry</button></form></div>
-<section class="panel" style="margin-bottom:18px"><div class="panel-heading"><div><h2>Registry service</h2><p>Municipal information system data service</p></div></div><div class="panel-body"><span class="primary-text">Engine: SQLite3 Relational Store (Connected · Active)</span><div class="secondary-text" style="margin-top:8px">Registry changes are saved to the Council information system.</div></div></section>
-{% for table in tables %}<section class="panel schema-card"><div class="schema-top"><h3>{{ table.name }}</h3><span class="schema-meta">{{ table.count }} row{{ '' if table.count == 1 else 's' }}</span></div><div class="table-wrap"><table class="schema-table"><thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Required</th></tr></thead><tbody>{% for column in table.columns %}<tr><td class="primary-text">{{ column.name }}</td><td>{{ column.type or '—' }}</td><td>{% if column.pk %}<span class="badge badge-paid">Primary key</span>{% else %}—{% endif %}</td><td>{{ 'Yes' if column.notnull or column.pk else 'No' }}</td></tr>{% endfor %}</tbody></table></div>
-  <div class="panel-heading"><div><h2>Latest records</h2><p>Showing up to five rows</p></div></div><div class="table-wrap"><table class="schema-table"><thead><tr>{% for column in table.columns %}<th>{{ column.name }}</th>{% endfor %}</tr></thead><tbody>{% for record in table.records %}<tr>{% for column in table.columns %}<td>{{ record[column.name] if record[column.name] is not none else '—' }}</td>{% endfor %}</tr>{% else %}<tr><td colspan="{{ table.columns|length }}">No records found.</td></tr>{% endfor %}</tbody></table></div></section>{% endfor %}
+<div class="heading">
+  <div><h2>Census Data Explorer</h2><p>Inspect the relational schema, table sizes, and sample rows used by the sanitation monitoring prototype.</p></div>
+  <div class="toolbar"><a class="btn btn-primary" href="{{ url_for('export_database_summary') }}">Export Data Dictionary CSV</a><button class="btn" type="button" onclick="window.print()">Print Data Dictionary</button></div>
+</div>
+<div class="notice"><strong>Source status:</strong> The supplied presentation cites a census report and reports 58 model observations, but its underlying ward-level source file was not provided. The seeded ward register is illustrative and must be replaced with validated data for census analysis.</div>
+<section class="panel">
+  <div class="panel-heading"><div><h3>Database connection</h3><p>Local relational data store</p></div></div>
+  <div class="panel-body"><strong>Engine: SQLite3 Relational Store (Connected · Active)</strong><p class="source">The database tables are initialized automatically when the Flask application starts. Existing legacy business, property, and complaint tables are not deleted by this sanitation dashboard.</p></div>
+</section>
+{% for table in tables %}
+<section class="panel">
+  <div class="panel-heading"><div><h3>{{ table.name }}</h3><p>{{ table.count }} record{{ '' if table.count == 1 else 's' }}</p></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Column</th><th>SQLite type</th><th>Key</th><th>Required</th></tr></thead><tbody>
+    {% for column in table.columns %}<tr><td><strong>{{ column.name }}</strong></td><td>{{ column.type or '—' }}</td><td>{% if column.pk %}Primary key{% else %}—{% endif %}</td><td>{{ 'Yes' if column.notnull or column.pk else 'No' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <div class="panel-heading"><div><h3>Sample rows</h3><p>First five records</p></div></div>
+  <div class="table-wrap"><table><thead><tr>{% for column in table.columns %}<th>{{ column.name }}</th>{% endfor %}</tr></thead><tbody>
+    {% for record in table.records %}<tr>{% for column in table.columns %}<td>{{ record[column.name] if record[column.name] is not none else '—' }}</td>{% endfor %}</tr>{% else %}<tr><td colspan="{{ table.columns|length }}">No records found.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endfor %}
 {% endblock %}

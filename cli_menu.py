@@ -1,67 +1,75 @@
 from database import get_db, init_db
 
 
-def show_businesses():
+def show_ward_summary():
     with get_db() as connection:
         rows = connection.execute(
-            "SELECT license_no, business_name, owner_name, division, annual_fee_ugx, status FROM businesses ORDER BY id"
+            """SELECT division, COUNT(*) AS ward_count,
+            ROUND(AVG(improved_sanitation_pct), 1) AS mean_illustrative_coverage,
+            SUM(CASE WHEN vulnerability_index = 'High' THEN 1 ELSE 0 END) AS high_vulnerability
+            FROM wards GROUP BY division ORDER BY division"""
         ).fetchall()
-    print("\nBUSINESS & TRADING LICENSES")
-    print("-" * 98)
+    print("\nWARD-LEVEL SANITATION SUMMARY")
+    print("-" * 92)
     for row in rows:
-        print(f"{row['license_no']:<21} {row['business_name']:<27} {row['owner_name']:<20} {row['status']:<8} UGX {row['annual_fee_ugx']:,}")
+        print(
+            f"{row['division']:<30} {row['ward_count']:>2} wards | "
+            f"{row['mean_illustrative_coverage']:>5.1f}% illustrative average | "
+            f"{row['high_vulnerability']} high-vulnerability wards"
+        )
+    print("Ward-level demo figures are illustrative, not UBOS ward estimates.")
 
 
-def show_properties():
+def show_model_results():
+    print("\nBETA REGRESSION RESULTS (AS REPORTED IN PRESENTATION)")
+    print("-" * 74)
+    print(f"{'Variable':<22} {'Coefficient':>13} {'Std. error':>13} {'p-value':>10}")
+    print(f"{'Household size':<22} {-0.6479:>13.4f} {0.2188:>13.4f} {'0.003':>10}")
+    print(f"{'Unemployment':<22} {-0.0235:>13.4f} {0.0098:>13.4f} {'0.017':>10}")
+    print(f"{'Constant':<22} {3.3527:>13.4f} {0.8323:>13.4f} {'0.000':>10}")
+    print("58 observations | LR chi-square 19.29 | model p-value 0.0001")
+    print("Log likelihood 17.05433")
+
+
+def show_interventions():
     with get_db() as connection:
         rows = connection.execute(
-            "SELECT plot_no, owner_name, division, annual_rate_ugx, payment_status FROM properties ORDER BY plot_no"
+            "SELECT programme_name, target_ward, status, lead_agency FROM interventions ORDER BY id"
         ).fetchall()
-    print("\nPROPERTY RATES")
-    print("-" * 85)
+    print("\nINTERVENTIONS REGISTER")
+    print("-" * 110)
     for row in rows:
-        print(f"{row['plot_no']:<15} {row['owner_name']:<22} {row['division']:<27} UGX {row['annual_rate_ugx']:>10,}  {row['payment_status']}")
+        print(f"{row['programme_name']:<46} {row['target_ward']:<25} {row['status']:<16} {row['lead_agency']}")
+    print("Programme assignments and statuses are illustrative demonstration entries.")
 
 
-def show_complaints():
+def show_ward_register():
     with get_db() as connection:
         rows = connection.execute(
-            "SELECT ticket_no, category, location_detail, priority, status FROM complaints ORDER BY logged_at DESC"
+            """SELECT ward_name, division, total_households, improved_sanitation_pct,
+            vulnerability_index, primary_vulnerable_group
+            FROM wards ORDER BY division, ward_name"""
         ).fetchall()
-    print("\nCITIZEN SERVICE REQUESTS")
-    print("-" * 100)
+    print("\nWARD-LEVEL SANITATION REGISTER")
+    print("-" * 120)
     for row in rows:
-        print(f"{row['ticket_no']:<18} {row['category']:<22} {row['location_detail']:<34} {row['priority']:<7} {row['status']}")
-
-
-def show_revenue():
-    with get_db() as connection:
-        license_revenue = connection.execute(
-            "SELECT COALESCE(SUM(annual_fee_ugx), 0) FROM businesses WHERE status = 'Paid'"
-        ).fetchone()[0]
-        property_revenue = connection.execute(
-            "SELECT COALESCE(SUM(annual_rate_ugx), 0) FROM properties WHERE payment_status = 'Cleared'"
-        ).fetchone()[0]
-        pending = connection.execute(
-            "SELECT COUNT(*) FROM businesses WHERE status = 'Pending'"
-        ).fetchone()[0]
-    print("\nREVENUE SUMMARY")
-    print("-" * 38)
-    print(f"Collected business license fees: UGX {license_revenue:,}")
-    print(f"Collected property rates:        UGX {property_revenue:,}")
-    print(f"Total revenue collected:         UGX {license_revenue + property_revenue:,}")
-    print(f"Pending license payments:        {pending}")
+        print(
+            f"{row['ward_name']:<26} {row['division']:<27} {row['total_households']:>5} households "
+            f"{row['improved_sanitation_pct']:>5.1f}% improved "
+            f"{row['vulnerability_index']:<7} {row['primary_vulnerable_group']}"
+        )
+    print("All ward-level values are illustrative placeholders pending validated ward data.")
 
 
 def main():
     init_db()
-    actions = {"1": show_businesses, "2": show_properties, "3": show_complaints, "4": show_revenue}
+    actions = {"1": show_ward_register, "2": show_model_results, "3": show_interventions, "4": show_ward_summary}
     while True:
-        print("\nMBALE CITY COUNCIL | INFORMATION SYSTEM")
-        print("1. Business Licenses")
-        print("2. Property Rates")
-        print("3. Citizen Complaints")
-        print("4. Revenue Summary")
+        print("\nMBALE CITY SANITATION MONITORING PORTAL")
+        print("1. Ward-Level Sanitation Register")
+        print("2. Beta Regression Results")
+        print("3. Interventions & Gaps")
+        print("4. Division Summary")
         print("0. Exit")
         choice = input("Select an option: ").strip()
         if choice == "0":

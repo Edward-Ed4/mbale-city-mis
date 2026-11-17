@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Statistical Beta Regression Model · Mbale City{% endblock %}
+{% block content %}
+<div class="heading">
+  <div><h2>Statistical Beta Regression Model</h2><p>Reported model results for the relationship between socio-economic conditions and household sanitation access.</p></div>
+  <div class="toolbar"><a class="btn btn-primary" href="{{ url_for('export_model_csv') }}">Export Results CSV</a><button class="btn" type="button" onclick="window.print()">Print Model Results</button></div>
+</div>
+<div class="notice notice-info"><strong>Dependent variable:</strong> Household sanitation access proportion. Results below are transcribed from the supplied presentation; the underlying model dataset and specification were not included in the slides.</div>
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-heading"><div><h3>Regression coefficients</h3><p>As reported in the presentation</p></div></div>
+    <div class="panel-body flush table-wrap"><table class="stat-table"><thead><tr><th>Independent variable</th><th>Coefficient</th><th>Standard error</th><th>p-value</th><th>Reported significance</th></tr></thead>
+      <tbody>{% for name, coefficient, standard_error, p_value in coefficients %}
+      <tr><td>{{ name }}</td><td class="number">{{ "%+.4f"|format(coefficient) }}</td><td class="number">{{ "%.4f"|format(standard_error) }}</td><td class="number">{{ p_value }}</td><td>{% if p_value|float < 0.05 %}<span class="stat-sig">Significant at 5%</span>{% else %}Not significant at 5%{% endif %}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+  </section>
+  <section class="panel">
+    <div class="panel-heading"><div><h3>Model fit statistics</h3><p>Summary reported in the presentation</p></div></div>
+    <div class="panel-body">
+      <div class="bar-row"><span>Number of observations</span><strong>58 wards</strong></div>
+      <div class="bar-row"><span>LR chi-square</span><strong>19.29</strong></div>
+      <div class="bar-row"><span>Model p-value</span><strong>0.0001</strong></div>
+      <div class="bar-row"><span>Log likelihood</span><strong>17.05433</strong></div>
+    </div>
+  </section>
+</div>
+<section class="panel">
+  <div class="panel-heading"><div><h3>Plain-language interpretation</h3><p>How to explain the result during a presentation</p></div></div>
+  <div class="panel-body grid-3">
+    <div class="info-box"><h4>Household size</h4><p>The reported coefficient is negative (−0.6479), and p = 0.003. In the fitted model, larger household size is associated with a lower modeled sanitation-access proportion; the association is statistically significant at the 5% level.</p></div>
+    <div class="info-box"><h4>Unemployment</h4><p>The reported coefficient is negative (−0.0235), and p = 0.017. Unemployment is associated with lower modeled sanitation access in this model; this result is statistically significant at the 5% level.</p></div>
+    <div class="info-box"><h4>Statistical caution</h4><p>These are associations from the reported model, not proof of cause and effect. The coefficient scale, covariate definitions, diagnostics, and original output should be checked before interpreting effect size.</p></div>
+  </div>
+</section>
+<p class="source">A p-value of 0.000 for the constant is displayed as reported; it typically represents rounding, not a probability that is literally zero. The slides report 58 ward observations; this is not evidence that the illustrative register values below reproduce the fitted model input.</p>
+{% endblock %}

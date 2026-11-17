@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Interventions & Gap Analysis · Mbale City{% endblock %}
+{% block content %}
+<div class="heading">
+  <div><h2>Interventions &amp; Gap Analysis</h2><p>Connect sanitation programmes to the monitoring gaps identified in the research presentation.</p></div>
+  <div class="toolbar"><a class="btn btn-primary" href="{{ url_for('export_csv', dataset='interventions') }}">Export CSV</a><button class="btn" type="button" onclick="window.print()">Print Analysis</button></div>
+</div>
+<div class="notice"><strong>Programme data note:</strong> Programme names and gaps are based on the presentation. Ward assignments, lead-agency entries, and status labels in the register are illustrative demo records and are not independently verified implementation information.</div>
+<section class="panel">
+  <div class="panel-heading"><div><h3>Intervention register</h3><p>Example programme-to-area mapping for demonstrating monitoring concepts</p></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Programme</th><th>Illustrative target ward</th><th>Illustrative status</th><th>Lead agency (demo)</th></tr></thead><tbody>
+    {% for programme in programmes %}<tr><td><strong>{{ programme.programme_name }}</strong></td><td>{{ programme.target_ward }}</td><td><span class="badge badge-{{ programme.status|lower }}">{{ programme.status }}</span></td><td>{{ programme.lead_agency }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+<section class="panel">
+  <div class="panel-heading"><div><h3>Identified monitoring gaps and possible responses</h3><p>Planning prompts; confirm with Council and programme partners before implementation</p></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Gap highlighted in presentation</th><th>Evidence-informed monitoring prompt</th></tr></thead><tbody>
+    {% for gap, response in gaps %}<tr><td><strong>{{ gap }}</strong></td><td>{{ response }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+<section class="panel">
+  <div class="panel-heading"><div><h3>Using the evidence for allocation</h3><p>Suggested sequence for a validated planning process</p></div></div>
+  <div class="panel-body grid-3">
+    <div class="info-box"><h4>1. Validate</h4><p>Confirm household definitions, ward boundaries, source period, and sanitation indicators with UBOS and Council data teams.</p></div>
+    <div class="info-box"><h4>2. Compare</h4><p>Compare ward-level gaps alongside vulnerability, flood exposure, and intervention coverage—not the synthetic values in this demo.</p></div>
+    <div class="info-box"><h4>3. Monitor</h4><p>Agree on measurable follow-up indicators, responsible agencies, update frequency, and documented data quality checks.</p></div>
+  </div>
+</section>
+{% endblock %}
