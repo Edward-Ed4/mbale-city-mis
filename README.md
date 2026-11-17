@@ -1,15 +1,8 @@
-# Mbale City Sanitation Monitoring Portal
+# Mbale City Sanitation Analytics
 
-An academic dashboard prototype for **Statistical Analysis of Sanitation Inequalities in Mbale City: A Data-Driven Sanitation Monitoring Dashboard for Evidence-Based Decision-Making**. It presents the citywide sanitation figures and beta-regression results reported in the supplied presentation, along with a searchable ward register, intervention/gap analysis, CSV exports, and a SQLite data explorer.
+Flask and SQLite dashboard for sanitation coverage analytics, ward survey records, beta-regression prediction, intervention tracking, and CSV export.
 
-Read [USER_GUIDE_AND_PRESENTATION.md](./USER_GUIDE_AND_PRESENTATION.md) for a non-technical page tour and presentation script.
-
-## Important data limitations
-
-- The presentation cites the Bugisu Sub-region Census 2024 Profile Report and reports citywide improved sanitation of **59.85%** and unimproved sanitation of **40.18%**. Verify these against the original publication before formal academic or policy use; the displayed percentages differ from 100% by 0.03 points due to source rounding/reporting.
-- The presentation reports a beta regression based on 58 ward observations. The dashboard displays those reported results; it does not recalculate the model.
-- The seeded ward names beyond the examples supplied, household counts, ward percentages, vulnerability groups, division assignments, and intervention assignments/statuses are **illustrative demonstration data**, not UBOS ward estimates or verified programme records.
-- This prototype has no login or access control. Do not enter real personal, household, or sensitive administrative data.
+The city coverage KPI (59.85%), unimproved gap KPI (40.18%), and beta-regression coefficients are fixed reported benchmarks. The ward and intervention tables are editable SQLite records. Default seeded ward values are example records and should be replaced with verified data before operational policy use.
 
 ## Run locally
 
@@ -21,7 +14,7 @@ Read [USER_GUIDE_AND_PRESENTATION.md](./USER_GUIDE_AND_PRESENTATION.md) for a no
 4. Start the website: `python app.py`
 5. Open [http://127.0.0.1:5000](http://127.0.0.1:5000).
 
-SQLite is stored beside `database.py` at `mbale_city.db`. The schema is initialized automatically, and the 58 illustrative ward rows and five example intervention rows are inserted only when their respective tables are empty. Starting the app again does not overwrite existing rows.
+SQLite is stored beside `database.py` at `mbale_city.db`. The schema is initialized automatically. Default ward and intervention rows are inserted only when their tables are empty. Starting the app again does not overwrite existing rows. Existing intervention tables are migrated to the current status and coverage fields.
 
 The optional terminal menu uses the same database: `python cli_menu.py`.
 
@@ -39,10 +32,10 @@ Deploy this Flask application using a PythonAnywhere web app configured with `ws
 
 ## Dashboard modules
 
-1. **Overview & Problem Statement** — citywide headline, reported benchmark figures, research purpose, and consequences.
-2. **Ward-Level Sanitation Register** — searchable/filterable illustrative rows and CSV export.
-3. **Statistical Beta Regression Model** — coefficients, standard errors, p-values, fit statistics, and interpretation notes.
-4. **Interventions & Gap Analysis** — programme categories and the monitoring gaps from the presentation.
-5. **Census Data Explorer** — SQLite table schemas, row counts, sample records, and data-dictionary CSV.
+- **Analytics Overview** — coverage KPIs, database-driven ward charts, division comparison, and priority records.
+- **Ward Data & Surveys** — instant search and filters, add/edit/delete survey records, coverage and vulnerability updates, CSV export.
+- **Vulnerability Simulator** — interactive inverse-logit prediction using the displayed beta-regression coefficients.
+- **Intervention Tracker** — add/edit/delete programmes, coverage progress, and status updates.
+- **Database & CSV Export** — SQLite schemas, row counts, sample rows, and downloadable CSV files.
 
 Every page offers a print action. CSV exports are available for the ward register, model results, interventions, and database data dictionary.
