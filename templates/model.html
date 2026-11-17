@@ -5,7 +5,7 @@
   <div><h2>Statistical Beta Regression Model</h2><p>Reported model results for the relationship between socio-economic conditions and household sanitation access.</p></div>
   <div class="toolbar"><a class="btn btn-primary" href="{{ url_for('export_model_csv') }}">Export Results CSV</a><button class="btn" type="button" onclick="window.print()">Print Model Results</button></div>
 </div>
-<div class="notice notice-info"><strong>Dependent variable:</strong> Household sanitation access proportion. Results below are transcribed from the supplied presentation; the underlying model dataset and specification were not included in the slides.</div>
+<div class="notice notice-info"><strong>Dependent variable:</strong> Household sanitation access proportion. The coefficient table and fit statistics below reproduce the results reported in the presentation.</div>
 <div class="grid-2">
   <section class="panel">
     <div class="panel-heading"><div><h3>Regression coefficients</h3><p>As reported in the presentation</p></div></div>
@@ -33,5 +33,5 @@
     <div class="info-box"><h4>Statistical caution</h4><p>These are associations from the reported model, not proof of cause and effect. The coefficient scale, covariate definitions, diagnostics, and original output should be checked before interpreting effect size.</p></div>
   </div>
 </section>
-<p class="source">A p-value of 0.000 for the constant is displayed as reported; it typically represents rounding, not a probability that is literally zero. The slides report 58 ward observations; this is not evidence that the illustrative register values below reproduce the fitted model input.</p>
+<p class="source">A p-value of 0.000 for the constant is displayed as reported; it typically represents rounding, not a probability that is literally zero. The ward register contains illustrative values and does not reproduce the study's model observations.</p>
 {% endblock %}

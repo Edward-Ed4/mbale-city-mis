@@ -5,7 +5,7 @@
   <div><h2>Ward-Level Sanitation Register</h2><p>Search and compare household counts, sanitation coverage, vulnerability tiers, and primary vulnerable groups.</p></div>
   <div class="toolbar"><a class="btn btn-primary" href="{{ url_for('export_csv', dataset='wards') }}">Export CSV</a><button class="btn" type="button" onclick="window.print()">Print Register</button></div>
 </div>
-<div class="notice"><strong>Illustrative data only:</strong> The presentation reports 58 model observations but does not include ward-level records. The values below are generated for a functional prototype and must not be interpreted as measured UBOS census data. Replace them with verified data before analysis or decision-making.</div>
+<div class="notice"><strong>Illustrative data only:</strong> The values below are generated for a functional prototype and must not be interpreted as measured UBOS census data. Replace them with verified data before analysis or decision-making.</div>
 <form class="filters" method="get" action="{{ url_for('wards') }}">
   <div class="field"><label for="q">Search ward or group</label><input id="q" name="q" value="{{ search }}" placeholder="e.g., Namatala"></div>
   <div class="field"><label for="division">Division</label><select id="division" name="division"><option value="">All divisions</option>{% for division in divisions %}<option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>{% endfor %}</select></div>

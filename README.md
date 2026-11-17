@@ -7,7 +7,7 @@ Read [USER_GUIDE_AND_PRESENTATION.md](./USER_GUIDE_AND_PRESENTATION.md) for a no
 ## Important data limitations
 
 - The presentation cites the Bugisu Sub-region Census 2024 Profile Report and reports citywide improved sanitation of **59.85%** and unimproved sanitation of **40.18%**. Verify these against the original publication before formal academic or policy use; the displayed percentages differ from 100% by 0.03 points due to source rounding/reporting.
-- The presentation reports a beta regression based on 58 ward observations but does not include its ward-level source data or full model specification.
+- The presentation reports a beta regression based on 58 ward observations. The dashboard displays those reported results; it does not recalculate the model.
 - The seeded ward names beyond the examples supplied, household counts, ward percentages, vulnerability groups, division assignments, and intervention assignments/statuses are **illustrative demonstration data**, not UBOS ward estimates or verified programme records.
 - This prototype has no login or access control. Do not enter real personal, household, or sensitive administrative data.
 

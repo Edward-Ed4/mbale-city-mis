@@ -10,7 +10,7 @@ The dashboard is not an official Mbale City Council service and does not process
 
 The slides cite the Bugisu Sub-region Census 2024 Profile Report and report citywide figures of **59.85% improved sanitation** and **40.18% unimproved sanitation**. Confirm the values in the original report before submitting formal academic work. Their sum is 100.03%, likely because of rounding or source reporting.
 
-The slides say the beta regression used **58 ward observations**, but the presentation file does not contain the underlying ward dataset or full model specification. Accordingly, all ward-level register values in this prototype—including household counts, sanitation percentages, vulnerability classifications, and some area labels—are generated illustrative examples. They are not UBOS ward-level estimates. Intervention target wards, agency assignments, and status values are also illustrative.
+The slides report a beta regression using **58 ward observations**. All ward-level register values in this prototype—including household counts, sanitation percentages, vulnerability classifications, and some area labels—are generated illustrative examples, not UBOS ward-level estimates. Intervention target wards, agency assignments, and status values are also illustrative.
 
 Be transparent: introduce the register as a demonstration interface, not as measured census results. Replace the illustrative data with a validated dataset before interpreting local ward rankings or recommending a real resource allocation.
 
@@ -65,7 +65,7 @@ Inspect the two sanitation tables, their column structures, row counts, and samp
 
 **Are the ward-level percentages official UBOS data?**
 
-No. The presentation file supplied the citywide headline figures and summary regression output, but not the ward-level source data. The register entries are illustrative and clearly labeled as such.
+No. The register entries are illustrative examples and clearly labeled as such.
 
 **Did the dashboard calculate the regression?**
 
