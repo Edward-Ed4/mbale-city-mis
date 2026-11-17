@@ -26,11 +26,26 @@ CREATE TABLE IF NOT EXISTS interventions (
 );
 """
 
-ILLUSTRATIVE_WARD_NAMES = (
-    "Namatala", "Busamaga", "Maluku", "Senior Quarters", "Nkoma", "Mooni",
-    "Nabuyonga", "Bugema", "Industrial Ward", "Wanale", "Republic Street",
-    "Naboa Road", "Pallisa Road",
-    *(f"Illustrative Ward {number:02d}" for number in range(14, 59)),
+SEED_WARDS = (
+    ("Namatala", "Industrial City Division"),
+    ("Maluku", "Industrial City Division"),
+    ("Industrial Ward", "Industrial City Division"),
+    ("Namabasa", "Industrial City Division"),
+    ("Busajabwemi", "Industrial City Division"),
+    ("Naboa", "Industrial City Division"),
+    ("Republic Street", "Industrial City Division"),
+    ("Pallisa Road", "Industrial City Division"),
+    ("Kumi Road", "Industrial City Division"),
+    ("Senior Quarters", "Northern City Division"),
+    ("Mooni", "Northern City Division"),
+    ("Nkoma", "Northern City Division"),
+    ("Busamaga", "Northern City Division"),
+    ("Nabuyonga", "Northern City Division"),
+    ("Bugema", "Northern City Division"),
+    ("Bufumbo", "Northern City Division"),
+    ("Lwangosia", "Northern City Division"),
+    ("Wanale", "Northern City Division"),
+    ("Nyondo", "Northern City Division"),
 )
 
 VULNERABLE_GROUPS = (
@@ -65,18 +80,13 @@ def get_db():
         connection.close()
 
 
-def _illustrative_ward_rows():
+def _seed_ward_rows():
     rows = []
-    for index, ward_name in enumerate(ILLUSTRATIVE_WARD_NAMES):
+    for index, (ward_name, division) in enumerate(SEED_WARDS):
         ward_number = index + 1
-        division = (
-            "Industrial City Division"
-            if ward_number % 2
-            else "Northern City Division"
-        )
-        vulnerability = "High" if ward_number <= 14 else "Medium" if ward_number <= 36 else "Low"
         household_count = 240 + (ward_number * 137 % 1100)
         coverage = 35 + (ward_number * 19 + 11) % 41
+        vulnerability = "High" if coverage < 50 else "Medium" if coverage < 65 else "Low"
         rows.append(
             (
                 ward_name,
@@ -89,6 +99,40 @@ def _illustrative_ward_rows():
             )
         )
     return rows
+
+
+def _migrate_ward_names(connection):
+    connection.execute(
+        "DELETE FROM wards WHERE ward_name LIKE ? OR ward_name = ?",
+        ("Illustrative Ward %", "Naboa Road"),
+    )
+    for ward_name, division in SEED_WARDS:
+        connection.execute(
+            """UPDATE wards SET division = ?,
+            vulnerability_index = CASE
+                WHEN improved_sanitation_pct < 50 THEN 'High'
+                WHEN improved_sanitation_pct < 65 THEN 'Medium'
+                ELSE 'Low'
+            END
+            WHERE ward_name = ?""",
+            (division, ward_name),
+        )
+    existing_names = {
+        row["ward_name"]
+        for row in connection.execute("SELECT ward_name FROM wards").fetchall()
+    }
+    new_rows = [
+        row for row in _seed_ward_rows()
+        if row[0] not in existing_names
+    ]
+    if new_rows:
+        connection.executemany(
+            """INSERT INTO wards
+            (ward_name, division, total_households, improved_sanitation_pct,
+             unimproved_sanitation_pct, vulnerability_index, primary_vulnerable_group)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            new_rows,
+        )
 
 
 def _migrate_interventions(connection):
@@ -148,19 +192,11 @@ def _migrate_interventions(connection):
 
 
 def init_db():
-    """Create the sanitation schema and seed illustrative rows only when empty."""
+    """Create the schema, replace generated ward labels, and seed missing records."""
     with get_db() as connection:
         connection.executescript(SCHEMA)
         _migrate_interventions(connection)
-        ward_count = connection.execute("SELECT COUNT(*) FROM wards").fetchone()[0]
-        if ward_count == 0:
-            connection.executemany(
-                """INSERT INTO wards
-                (ward_name, division, total_households, improved_sanitation_pct,
-                 unimproved_sanitation_pct, vulnerability_index, primary_vulnerable_group)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                _illustrative_ward_rows(),
-            )
+        _migrate_ward_names(connection)
         intervention_count = connection.execute(
             "SELECT COUNT(*) FROM interventions"
         ).fetchone()[0]
