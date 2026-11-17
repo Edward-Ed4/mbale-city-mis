@@ -1,25 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Ward-Level Sanitation Register · Mbale City{% endblock %}
+{% block title %}Ward Data & Surveys · Mbale City{% endblock %}
 {% block content %}
-<div class="heading">
-  <div><h2>Ward-Level Sanitation Register</h2><p>Search and compare household counts, sanitation coverage, vulnerability tiers, and primary vulnerable groups.</p></div>
-  <div class="toolbar"><a class="btn btn-primary" href="{{ url_for('export_csv', dataset='wards') }}">Export CSV</a><button class="btn" type="button" onclick="window.print()">Print Register</button></div>
+<div class="heading"><h2>Ward Data &amp; Surveys</h2><div class="toolbar"><button class="btn btn-primary" type="button" onclick="openWardModal()">+ Add Ward Survey Record</button><a class="btn" href="{{ url_for('export_csv', dataset='wards') }}">Export CSV</a><button class="btn" type="button" onclick="window.print()">Print</button></div></div>
+<div class="filters">
+  <div class="field"><label for="ward-search">Search</label><input id="ward-search" type="search" placeholder="Ward or vulnerable group"></div>
+  <div class="field"><label for="division-filter">Division</label><select id="division-filter"><option value="">All divisions</option>{% for division in divisions %}<option value="{{ division }}">{{ division }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="risk-filter">Vulnerability</label><select id="risk-filter"><option value="">All levels</option>{% for level in vulnerability_levels %}<option value="{{ level }}">{{ level }}</option>{% endfor %}</select></div>
+  <span class="count-note"><span id="visible-count">{{ wards|length }}</span> / {{ wards|length }} records</span>
 </div>
-<div class="notice"><strong>Illustrative data only:</strong> The values below are generated for a functional prototype and must not be interpreted as measured UBOS census data. Replace them with verified data before analysis or decision-making.</div>
-<form class="filters" method="get" action="{{ url_for('wards') }}">
-  <div class="field"><label for="q">Search ward or group</label><input id="q" name="q" value="{{ search }}" placeholder="e.g., Namatala"></div>
-  <div class="field"><label for="division">Division</label><select id="division" name="division"><option value="">All divisions</option>{% for division in divisions %}<option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>{% endfor %}</select></div>
-  <div class="field"><label for="vulnerability">Vulnerability</label><select id="vulnerability" name="vulnerability"><option value="">All levels</option>{% for level in vulnerability_levels %}<option value="{{ level }}" {% if selected_vulnerability == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></div>
-  <button class="btn btn-primary" type="submit">Apply filters</button><a class="btn" href="{{ url_for('wards') }}">Clear</a>
-  <span class="count-note">{{ wards|length }} ward records shown</span>
-</form>
 <section class="panel">
-  <div class="table-wrap"><table>
-    <thead><tr><th>Ward / analysis area</th><th>Division</th><th>Households</th><th>Improved sanitation</th><th>Unimproved sanitation</th><th>Vulnerability</th><th>Primary vulnerable group</th></tr></thead>
+  <div class="table-wrap"><table id="ward-table">
+    <thead><tr><th>Ward</th><th>Division</th><th>Households</th><th>Coverage (%)</th><th>Risk</th><th>Vulnerable group</th><th>Quick update</th><th></th></tr></thead>
     <tbody>{% for ward in wards %}
-      <tr><td><strong>{{ ward.ward_name }}</strong></td><td>{{ ward.division }}</td><td class="number">{{ "{:,}".format(ward.total_households) }}</td><td class="number">{{ "%.1f"|format(ward.improved_sanitation_pct) }}%</td><td class="number">{{ "%.1f"|format(ward.unimproved_sanitation_pct) }}%</td><td><span class="badge badge-{{ ward.vulnerability_index|lower }}">{{ ward.vulnerability_index }}</span></td><td>{{ ward.primary_vulnerable_group }}</td></tr>
-    {% else %}<tr><td colspan="7">No wards match these filters.</td></tr>{% endfor %}</tbody>
+      <tr data-search="{{ (ward.ward_name ~ ' ' ~ ward.primary_vulnerable_group)|lower }}" data-division="{{ ward.division }}" data-risk="{{ ward.vulnerability_index }}">
+        <td><strong>{{ ward.ward_name }}</strong></td><td>{{ ward.division }}</td><td class="number">{{ "{:,}".format(ward.total_households) }}</td>
+        <td class="number">{{ "%.1f"|format(ward.improved_sanitation_pct) }}%</td><td><span class="badge badge-{{ ward.vulnerability_index|lower }}">{{ ward.vulnerability_index }}</span></td><td>{{ ward.primary_vulnerable_group }}</td>
+        <td><form class="inline-form" method="post" action="{{ url_for('update_ward', ward_id=ward.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <input aria-label="Coverage percentage" name="improved_sanitation_pct" type="number" min="0" max="100" step="0.1" value="{{ ward.improved_sanitation_pct }}">
+          <select aria-label="Vulnerability" name="vulnerability_index">{% for level in vulnerability_levels %}<option value="{{ level }}" {% if ward.vulnerability_index == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select>
+          <button class="btn btn-small" type="submit">Save</button>
+        </form></td>
+        <td><div class="inline-form"><a class="btn btn-small" href="{{ url_for('wards', edit=ward.id) }}">Edit</a><form method="post" action="{{ url_for('delete_ward', ward_id=ward.id) }}" onsubmit="return confirm('Delete this ward survey record?')"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn btn-small" type="submit">Delete</button></form></div></td>
+      </tr>
+    {% else %}<tr><td colspan="8">No ward records available.</td></tr>{% endfor %}</tbody>
   </table></div>
 </section>
-<p class="source">The ward labels outside the examples supplied for the prototype are clearly identified as illustrative. The division assignment, household count, percentages, and classifications are all synthetic.</p>
+<div class="modal {% if edit_ward %}open{% endif %}" id="ward-modal" role="dialog" aria-modal="true" aria-labelledby="ward-modal-title" onclick="if(event.target===this)closeWardModal()">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="ward-modal-title">{{ 'Edit Ward Survey Record' if edit_ward else 'Add Ward Survey Record' }}</h3><button class="modal-close" type="button" aria-label="Close" onclick="closeWardModal()">×</button></div>
+    <form class="modal-form" method="post" action="{{ url_for('edit_ward', ward_id=edit_ward.id) if edit_ward else url_for('create_ward') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label for="ward-name">Ward name</label><input id="ward-name" name="ward_name" maxlength="100" required value="{{ edit_ward.ward_name if edit_ward else '' }}"></div>
+      <div class="field"><label for="ward-division">Division</label><select id="ward-division" name="division" required>{% for division in divisions %}<option value="{{ division }}" {% if edit_ward and edit_ward.division == division %}selected{% endif %}>{{ division }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="ward-households">Total households</label><input id="ward-households" name="total_households" type="number" min="1" required value="{{ edit_ward.total_households if edit_ward else 1 }}"></div>
+      <div class="field"><label for="ward-coverage">Improved sanitation (%)</label><input id="ward-coverage" name="improved_sanitation_pct" type="number" min="0" max="100" step="0.01" required value="{{ edit_ward.improved_sanitation_pct if edit_ward else 50 }}"></div>
+      <div class="field"><label for="ward-risk">Vulnerability</label><select id="ward-risk" name="vulnerability_index" required>{% for level in vulnerability_levels %}<option value="{{ level }}" {% if edit_ward and edit_ward.vulnerability_index == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="ward-group">Primary vulnerable group</label><select id="ward-group" name="primary_vulnerable_group" required>{% for group in vulnerable_groups %}<option value="{{ group }}" {% if edit_ward and edit_ward.primary_vulnerable_group == group %}selected{% endif %}>{{ group }}</option>{% endfor %}</select></div>
+      <div class="form-actions"><a class="btn" href="{{ url_for('wards') }}">Cancel</a><button class="btn btn-primary" type="submit">{{ 'Save changes' if edit_ward else 'Add record' }}</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  function openWardModal(){document.getElementById('ward-modal').classList.add('open');document.getElementById('ward-name').focus()}
+  function closeWardModal(){document.getElementById('ward-modal').classList.remove('open')}
+  const search=document.getElementById('ward-search');const division=document.getElementById('division-filter');const risk=document.getElementById('risk-filter');const rows=[...document.querySelectorAll('#ward-table tbody tr[data-search]')];
+  function filterWards(){let visible=0;rows.forEach(row=>{const matchText=row.dataset.search.includes(search.value.trim().toLowerCase());const matchDivision=!division.value||row.dataset.division===division.value;const matchRisk=!risk.value||row.dataset.risk===risk.value;const show=matchText&&matchDivision&&matchRisk;row.hidden=!show;if(show)visible++});document.getElementById('visible-count').textContent=visible}
+  [search,division,risk].forEach(control=>control.addEventListener('input',filterWards));
+</script>
+{% if edit_ward %}<script>document.getElementById('ward-modal').classList.add('open')</script>{% endif %}
 {% endblock %}

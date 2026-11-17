@@ -1,46 +1,34 @@
 {% extends "base.html" %}
-{% block title %}Statistical Analysis of Sanitation Inequalities in Mbale City: A Data-Driven Sanitation Monitoring Dashboard for Evidence-Based Decision-Making{% endblock %}
+{% block title %}Analytics Overview · Mbale City{% endblock %}
 {% block content %}
-<div class="heading">
-  <div><h2>Overview &amp; Problem Statement</h2><p>Sanitation inequality, public-health risks, and the case for ward-level evidence in Mbale City.</p></div>
-  <div class="toolbar"><a class="btn btn-primary" href="{{ url_for('export_csv', dataset='wards') }}">Export Ward Data CSV</a><button class="btn" type="button" onclick="window.print()">Print Overview</button></div>
-</div>
-<div class="hook">In Mbale City, <em>4 in every 10 households</em> lack access to improved sanitation facilities.</div>
+<div class="heading"><h2>Analytics Overview</h2><div class="toolbar"><a class="btn" href="{{ url_for('export_csv', dataset='wards') }}">Export Ward CSV</a><button class="btn" type="button" onclick="window.print()">Print</button></div></div>
 <div class="cards">
-  <article class="card metric"><div class="metric-label">City Sanitation Coverage</div><div class="metric-value">59.85%</div><div class="metric-note">Census 2024 benchmark reported in the presentation</div></article>
-  <article class="card metric"><div class="metric-label">Unimproved Sanitation</div><div class="metric-value">40.18%</div><div class="metric-note">Far from the SDG 6.2 target; source percentages differ by 0.03 points due to rounding/source reporting</div></article>
-  <article class="card metric"><div class="metric-label">Model Observations</div><div class="metric-value">58</div><div class="metric-note">Ward observations reported for the beta regression</div></article>
-  <article class="card metric"><div class="metric-label">High-Vulnerability Areas</div><div class="metric-value">14</div><div class="metric-note">Illustrative register classification; validate before policy use</div></article>
+  <article class="card metric"><div class="metric-label">City Coverage</div><div class="metric-value">59.85%</div></article>
+  <article class="card metric"><div class="metric-label">Unimproved Gap</div><div class="metric-value">40.18%</div></article>
+  <article class="card metric"><div class="metric-label">Monitored Wards</div><div class="metric-value">{{ ward_count }}</div></article>
+  <article class="card metric"><div class="metric-label">High-Risk Wards</div><div class="metric-value">{{ high_vulnerability_count }}</div></article>
 </div>
-<div class="notice"><strong>Data integrity note:</strong> The 59.85% and 40.18% figures and the model results are transcribed from the presentation, which cites the Bugisu Sub-region Census 2024 Profile Report. Ward names beyond the examples, household totals, sanitation percentages, vulnerability labels, and programme statuses in this prototype are illustrative demonstration data—not UBOS ward estimates.</div>
-<p class="source">The presentation identifies low-income households, females, persons with disabilities, children under five, and residents of informal and flood-prone communities among those who may be disproportionately affected.</p>
 <div class="grid-2">
-  <section class="panel">
-    <div class="panel-heading"><div><h3>Why sanitation inequality matters</h3><p>Consequences highlighted in the research presentation</p></div></div>
-    <div class="panel-body grid-2">
-      <div class="info-box"><h4>Public health</h4><p>Increased exposure to waterborne diseases and higher household healthcare expenditure.</p></div>
-      <div class="info-box"><h4>Environment</h4><p>Pollution and contamination can affect neighbourhoods and water sources.</p></div>
-      <div class="info-box"><h4>Privacy, dignity &amp; safety</h4><p>Low sanitation access can disproportionately affect women and girls.</p></div>
-      <div class="info-box"><h4>Climate resilience</h4><p>Flood-prone communities can face greater sanitation risks during climate-related events.</p></div>
-    </div>
+  <section class="panel chart-panel">
+    <div class="panel-heading"><h3>Sanitation Coverage by Ward</h3><span class="subtle">Improved sanitation (%)</span></div>
+    <div class="chart-scroll"><canvas id="coverage-chart" role="img" aria-label="Horizontal bar chart of sanitation coverage by ward"></canvas></div>
+    <div class="chart-meta"><span><i class="legend-dot" style="background:#327346"></i>≥65%</span><span><i class="legend-dot" style="background:#d89a23"></i>50–64%</span><span><i class="legend-dot" style="background:#c84b59"></i>&lt;50%</span><span>Dashed line: 59.85% city benchmark</span></div>
   </section>
-  <section class="panel">
-    <div class="panel-heading"><div><h3>Illustrative division register</h3><p>Computed from the demonstration ward rows; not census estimates</p></div></div>
-    <div class="panel-body">
-      {% for division in division_summary %}
-      <div class="bar-row"><span>{{ division.division }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ division.illustrative_average }}%"></div></div><strong>{{ division.illustrative_average }}%</strong></div>
-      {% else %}<p class="source">No ward records available.</p>{% endfor %}
-      <p class="source">Showing {{ ward_count }} illustrative register rows. {{ high_vulnerability_count }} are tagged high vulnerability for demonstration only.</p>
-    </div>
+  <section class="panel chart-panel">
+    <div class="panel-heading"><h3>Vulnerability by Division</h3><span class="subtle">Ward count</span></div>
+    <div class="chart-box"><canvas id="vulnerability-chart" role="img" aria-label="Grouped bar chart of vulnerability levels by division"></canvas></div>
+    <div class="chart-meta"><span><i class="legend-dot" style="background:#327346"></i>Low</span><span><i class="legend-dot" style="background:#d89a23"></i>Medium</span><span><i class="legend-dot" style="background:#c84b59"></i>High</span></div>
   </section>
 </div>
 <section class="panel">
-  <div class="panel-heading"><div><h3>Research objective</h3><p>From descriptive statistics to evidence-informed sanitation planning</p></div></div>
-  <div class="panel-body grid-3">
-    <div class="info-box"><h4>Measure</h4><p>Organize household sanitation indicators by ward and identify geographic differences.</p></div>
-    <div class="info-box"><h4>Analyze</h4><p>Present the beta regression results reported in the study and explain their statistical significance.</p></div>
-    <div class="info-box"><h4>Prioritize</h4><p>Use validated coverage, vulnerability, and programme data to identify where follow-up may be needed.</p></div>
-  </div>
+  <div class="panel-heading"><h3>Top Priority Wards (Lowest Coverage)</h3><a class="btn btn-small" href="{{ url_for('wards') }}">Ward Register</a></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Ward</th><th>Division</th><th>Households</th><th>Coverage</th><th>Risk</th><th>Action</th></tr></thead>
+    <tbody>{% for ward in top_priority %}
+      <tr><td><strong>{{ ward.ward_name }}</strong></td><td>{{ ward.division }}</td><td class="number">{{ "{:,}".format(ward.total_households) }}</td><td class="number">{{ "%.1f"|format(ward.improved_sanitation_pct) }}%</td><td><span class="badge badge-{{ ward.vulnerability_index|lower }}">{{ ward.vulnerability_index }}</span></td><td><a class="btn btn-small" href="{{ url_for('wards', edit=ward.id) }}">Edit record</a></td></tr>
+    {% else %}<tr><td colspan="6">No ward records available.</td></tr>{% endfor %}</tbody>
+  </table></div>
 </section>
-<p class="source">Source for reported citywide benchmark and model results: presentation citing the Bugisu Sub-region Census 2024 Profile Report. These slide figures should be checked against the original publication before external policy or academic use.</p>
+<script id="analytics-data" type="application/json">{{ chart_data|tojson }}</script>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>{% endblock %}

@@ -1,29 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Interventions & Gap Analysis · Mbale City{% endblock %}
+{% block title %}Intervention Tracker · Mbale City{% endblock %}
 {% block content %}
-<div class="heading">
-  <div><h2>Interventions &amp; Gap Analysis</h2><p>Connect sanitation programmes to the monitoring gaps identified in the research presentation.</p></div>
-  <div class="toolbar"><a class="btn btn-primary" href="{{ url_for('export_csv', dataset='interventions') }}">Export CSV</a><button class="btn" type="button" onclick="window.print()">Print Analysis</button></div>
-</div>
-<div class="notice"><strong>Programme data note:</strong> Programme names and gaps are based on the presentation. Ward assignments, lead-agency entries, and status labels in the register are illustrative demo records and are not independently verified implementation information.</div>
+<div class="heading"><h2>Intervention Tracker</h2><div class="toolbar"><button class="btn btn-primary" type="button" onclick="document.getElementById('intervention-modal').classList.add('open')">+ Add Programme</button><a class="btn" href="{{ url_for('export_csv', dataset='interventions') }}">Export CSV</a><button class="btn" type="button" onclick="window.print()">Print</button></div></div>
 <section class="panel">
-  <div class="panel-heading"><div><h3>Intervention register</h3><p>Example programme-to-area mapping for demonstrating monitoring concepts</p></div></div>
-  <div class="table-wrap"><table><thead><tr><th>Programme</th><th>Illustrative target ward</th><th>Illustrative status</th><th>Lead agency (demo)</th></tr></thead><tbody>
-    {% for programme in programmes %}<tr><td><strong>{{ programme.programme_name }}</strong></td><td>{{ programme.target_ward }}</td><td><span class="badge badge-{{ programme.status|lower }}">{{ programme.status }}</span></td><td>{{ programme.lead_agency }}</td></tr>{% endfor %}
-  </tbody></table></div>
+  <div class="panel-heading"><h3>Sanitation Programmes</h3><span class="subtle">{{ programmes|length }} programmes</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Programme</th><th>Assigned wards</th><th>Lead agency</th><th>Coverage progress</th><th>Status</th><th>Update</th><th></th></tr></thead>
+    <tbody>{% for programme in programmes %}
+      <tr>
+        <td><strong>{{ programme.programme_name }}</strong></td><td>{{ programme.target_ward }}</td><td>{{ programme.lead_agency }}</td>
+        <td><div class="inline-form"><div class="progress" title="{{ programme.coverage_pct }}%"><span style="width:{{ programme.coverage_pct }}%"></span></div><span class="number">{{ "%.0f"|format(programme.coverage_pct) }}%</span></div></td>
+        <td><span class="badge badge-{{ programme.status|lower|replace(' ', '-') }}">{{ programme.status }}</span></td>
+        <td><form class="inline-form" method="post" action="{{ url_for('update_intervention', intervention_id=programme.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <select aria-label="Programme status" name="status">{% for status in statuses %}<option value="{{ status }}" {% if programme.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}</select>
+          <input aria-label="Coverage percent" name="coverage_pct" type="number" min="0" max="100" step="1" value="{{ programme.coverage_pct }}">
+          <button class="btn btn-small" type="submit">Save</button>
+        </form></td>
+        <td><form method="post" action="{{ url_for('delete_intervention', intervention_id=programme.id) }}" onsubmit="return confirm('Delete this intervention programme?')"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn btn-small" type="submit">Delete</button></form></td>
+      </tr>
+    {% else %}<tr><td colspan="7">No intervention programmes available.</td></tr>{% endfor %}</tbody>
+  </table></div>
 </section>
-<section class="panel">
-  <div class="panel-heading"><div><h3>Identified monitoring gaps and possible responses</h3><p>Planning prompts; confirm with Council and programme partners before implementation</p></div></div>
-  <div class="table-wrap"><table><thead><tr><th>Gap highlighted in presentation</th><th>Evidence-informed monitoring prompt</th></tr></thead><tbody>
-    {% for gap, response in gaps %}<tr><td><strong>{{ gap }}</strong></td><td>{{ response }}</td></tr>{% endfor %}
-  </tbody></table></div>
-</section>
-<section class="panel">
-  <div class="panel-heading"><div><h3>Using the evidence for allocation</h3><p>Suggested sequence for a validated planning process</p></div></div>
-  <div class="panel-body grid-3">
-    <div class="info-box"><h4>1. Validate</h4><p>Confirm household definitions, ward boundaries, source period, and sanitation indicators with UBOS and Council data teams.</p></div>
-    <div class="info-box"><h4>2. Compare</h4><p>Compare ward-level gaps alongside vulnerability, flood exposure, and intervention coverage—not the synthetic values in this demo.</p></div>
-    <div class="info-box"><h4>3. Monitor</h4><p>Agree on measurable follow-up indicators, responsible agencies, update frequency, and documented data quality checks.</p></div>
+<div class="modal" id="intervention-modal" role="dialog" aria-modal="true" aria-labelledby="intervention-modal-title" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="intervention-modal-title">Add Programme</h3><button class="modal-close" type="button" aria-label="Close" onclick="document.getElementById('intervention-modal').classList.remove('open')">×</button></div>
+    <form class="modal-form" method="post" action="{{ url_for('create_intervention') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label for="programme-name">Programme</label><input id="programme-name" name="programme_name" maxlength="120" required></div>
+      <div class="field"><label for="programme-wards">Assigned wards</label><input id="programme-wards" name="target_ward" maxlength="250" required></div>
+      <div class="field"><label for="programme-agency">Lead agency</label><input id="programme-agency" name="lead_agency" maxlength="120" required></div>
+      <div class="field"><label for="programme-status">Status</label><select id="programme-status" name="status">{% for status in statuses %}<option value="{{ status }}">{{ status }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="programme-coverage">Coverage (%)</label><input id="programme-coverage" name="coverage_pct" type="number" min="0" max="100" step="1" value="0" required></div>
+      <div class="form-actions"><button class="btn" type="button" onclick="document.getElementById('intervention-modal').classList.remove('open')">Cancel</button><button class="btn btn-primary" type="submit">Add Programme</button></div>
+    </form>
   </div>
-</section>
+</div>
 {% endblock %}

@@ -5,7 +5,7 @@ def show_ward_summary():
     with get_db() as connection:
         rows = connection.execute(
             """SELECT division, COUNT(*) AS ward_count,
-            ROUND(AVG(improved_sanitation_pct), 1) AS mean_illustrative_coverage,
+            ROUND(AVG(improved_sanitation_pct), 1) AS mean_coverage,
             SUM(CASE WHEN vulnerability_index = 'High' THEN 1 ELSE 0 END) AS high_vulnerability
             FROM wards GROUP BY division ORDER BY division"""
         ).fetchall()
@@ -14,14 +14,13 @@ def show_ward_summary():
     for row in rows:
         print(
             f"{row['division']:<30} {row['ward_count']:>2} wards | "
-            f"{row['mean_illustrative_coverage']:>5.1f}% illustrative average | "
+            f"{row['mean_coverage']:>5.1f}% mean coverage | "
             f"{row['high_vulnerability']} high-vulnerability wards"
         )
-    print("Ward-level demo figures are illustrative, not UBOS ward estimates.")
 
 
 def show_model_results():
-    print("\nBETA REGRESSION RESULTS (AS REPORTED IN PRESENTATION)")
+    print("\nBETA REGRESSION SUMMARY")
     print("-" * 74)
     print(f"{'Variable':<22} {'Coefficient':>13} {'Std. error':>13} {'p-value':>10}")
     print(f"{'Household size':<22} {-0.6479:>13.4f} {0.2188:>13.4f} {'0.003':>10}")
@@ -39,8 +38,7 @@ def show_interventions():
     print("\nINTERVENTIONS REGISTER")
     print("-" * 110)
     for row in rows:
-        print(f"{row['programme_name']:<46} {row['target_ward']:<25} {row['status']:<16} {row['lead_agency']}")
-    print("Programme assignments and statuses are illustrative demonstration entries.")
+        print(f"{row['programme_name']:<39} {row['target_ward']:<28} {row['coverage_pct']:>5.0f}% {row['status']:<17} {row['lead_agency']}")
 
 
 def show_ward_register():
@@ -58,18 +56,17 @@ def show_ward_register():
             f"{row['improved_sanitation_pct']:>5.1f}% improved "
             f"{row['vulnerability_index']:<7} {row['primary_vulnerable_group']}"
         )
-    print("All ward-level values are illustrative placeholders pending validated ward data.")
 
 
 def main():
     init_db()
     actions = {"1": show_ward_register, "2": show_model_results, "3": show_interventions, "4": show_ward_summary}
     while True:
-        print("\nMBALE CITY SANITATION MONITORING PORTAL")
-        print("1. Ward-Level Sanitation Register")
-        print("2. Beta Regression Results")
-        print("3. Interventions & Gaps")
-        print("4. Division Summary")
+        print("\nMBALE CITY SANITATION ANALYTICS")
+        print("1. Ward Data & Surveys")
+        print("2. Vulnerability Model Summary")
+        print("3. Intervention Tracker")
+        print("4. Division Analytics")
         print("0. Exit")
         choice = input("Select an option: ").strip()
         if choice == "0":

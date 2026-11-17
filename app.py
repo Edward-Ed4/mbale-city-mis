@@ -3,8 +3,9 @@ import hmac
 import io
 import os
 import secrets
+import sqlite3
 
-from flask import Flask, Response, abort, render_template, request, session
+from flask import Flask, Response, abort, flash, redirect, render_template, request, session, url_for
 
 from database import DATABASE_PATH, get_db, init_db
 
@@ -16,6 +17,15 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 DIVISIONS = ("Industrial City Division", "Northern City Division")
 VULNERABILITY_LEVELS = ("High", "Medium", "Low")
+INTERVENTION_STATUSES = ("Active", "Scaling", "Needs Follow-up")
+VULNERABLE_GROUPS = (
+    "Children under 5",
+    "Low-income households",
+    "Women & Girls",
+    "Persons with disabilities",
+    "Informal settlements",
+    "Flood-prone communities",
+)
 
 BETA_REGRESSION = (
     ("Household size", -0.6479, 0.2188, "0.003"),
@@ -44,6 +54,7 @@ EXPORTS = {
             ("Target ward", "target_ward"),
             ("Status", "status"),
             ("Lead agency", "lead_agency"),
+            ("Coverage (%)", "coverage_pct"),
         ),
         "query": "SELECT * FROM interventions ORDER BY programme_name, target_ward",
     },
@@ -102,52 +113,172 @@ def overview():
             "SELECT COUNT(*) FROM wards WHERE vulnerability_index = ?",
             ("High",),
         ).fetchone()[0]
-        division_summary = connection.execute(
-            """SELECT division, COUNT(*) AS wards,
-            ROUND(AVG(improved_sanitation_pct), 1) AS illustrative_average
-            FROM wards GROUP BY division ORDER BY division"""
+        ward_data = connection.execute(
+            """SELECT ward_name, division, improved_sanitation_pct, vulnerability_index
+            FROM wards ORDER BY improved_sanitation_pct, ward_name"""
         ).fetchall()
+        vulnerability_data = connection.execute(
+            """SELECT division, vulnerability_index, COUNT(*) AS ward_count
+            FROM wards GROUP BY division, vulnerability_index"""
+        ).fetchall()
+        top_priority = connection.execute(
+            """SELECT id, ward_name, division, total_households, improved_sanitation_pct,
+            vulnerability_index FROM wards ORDER BY improved_sanitation_pct, ward_name LIMIT 8"""
+        ).fetchall()
+    chart_data = {
+        "wards": [
+            {
+                "name": row["ward_name"],
+                "coverage": row["improved_sanitation_pct"],
+                "division": row["division"],
+            }
+            for row in ward_data
+        ],
+        "vulnerability": [
+            {
+                "division": row["division"],
+                "level": row["vulnerability_index"],
+                "count": row["ward_count"],
+            }
+            for row in vulnerability_data
+        ],
+    }
     return render_template(
         "dashboard.html",
         active_page="overview",
         ward_count=ward_count,
         high_vulnerability_count=high_vulnerability_count,
-        division_summary=division_summary,
+        top_priority=top_priority,
+        chart_data=chart_data,
     )
 
 
 @app.get("/wards")
 def wards():
-    search = request.args.get("q", "").strip()[:100]
-    division = request.args.get("division", "")
-    vulnerability = request.args.get("vulnerability", "")
-    conditions = []
-    params = []
-    if search:
-        conditions.append("(ward_name LIKE ? OR primary_vulnerable_group LIKE ?)")
-        params.extend((f"%{search}%", f"%{search}%"))
-    if division in DIVISIONS:
-        conditions.append("division = ?")
-        params.append(division)
-    if vulnerability in VULNERABILITY_LEVELS:
-        conditions.append("vulnerability_index = ?")
-        params.append(vulnerability)
-    query = "SELECT * FROM wards"
-    if conditions:
-        query += " WHERE " + " AND ".join(conditions)
-    query += " ORDER BY division, ward_name"
     with get_db() as connection:
-        rows = connection.execute(query, params).fetchall()
+        rows = connection.execute(
+            "SELECT * FROM wards ORDER BY division, ward_name"
+        ).fetchall()
+        edit_id = request.args.get("edit", type=int)
+        edit_ward = connection.execute(
+            "SELECT * FROM wards WHERE id = ?", (edit_id,)
+        ).fetchone() if edit_id else None
     return render_template(
         "wards.html",
         active_page="wards",
         wards=rows,
-        search=search,
-        selected_division=division,
-        selected_vulnerability=vulnerability,
         divisions=DIVISIONS,
         vulnerability_levels=VULNERABILITY_LEVELS,
+        vulnerable_groups=VULNERABLE_GROUPS,
+        edit_ward=edit_ward,
     )
+
+
+def _ward_form_data():
+    ward_name = request.form.get("ward_name", "").strip()
+    division = request.form.get("division", "")
+    group = request.form.get("primary_vulnerable_group", "")
+    vulnerability = request.form.get("vulnerability_index", "")
+    try:
+        households = int(request.form.get("total_households", ""))
+        coverage = float(request.form.get("improved_sanitation_pct", ""))
+    except ValueError as error:
+        raise ValueError("Households must be a whole number and coverage must be numeric.") from error
+    if not ward_name or len(ward_name) > 100:
+        raise ValueError("Ward name is required and must be 100 characters or fewer.")
+    if division not in DIVISIONS or vulnerability not in VULNERABILITY_LEVELS or group not in VULNERABLE_GROUPS:
+        raise ValueError("Choose valid division, vulnerability, and vulnerable group values.")
+    if households < 1:
+        raise ValueError("Total households must be at least 1.")
+    if not 0 <= coverage <= 100:
+        raise ValueError("Improved sanitation coverage must be between 0 and 100.")
+    return {
+        "ward_name": ward_name,
+        "division": division,
+        "total_households": households,
+        "improved_sanitation_pct": coverage,
+        "unimproved_sanitation_pct": round(100 - coverage, 2),
+        "vulnerability_index": vulnerability,
+        "primary_vulnerable_group": group,
+    }
+
+
+@app.post("/wards/create")
+def create_ward():
+    try:
+        ward = _ward_form_data()
+        with get_db() as connection:
+            connection.execute(
+                """INSERT INTO wards
+                (ward_name, division, total_households, improved_sanitation_pct,
+                 unimproved_sanitation_pct, vulnerability_index, primary_vulnerable_group)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                tuple(ward.values()),
+            )
+        flash("Ward survey record added.", "success")
+    except ValueError as error:
+        flash(str(error), "error")
+    except sqlite3.IntegrityError:
+        flash("A ward with that name already exists.", "error")
+    return redirect(url_for("wards"))
+
+
+@app.post("/wards/<int:ward_id>/edit")
+def edit_ward(ward_id):
+    try:
+        ward = _ward_form_data()
+        with get_db() as connection:
+            result = connection.execute(
+                """UPDATE wards SET ward_name = ?, division = ?, total_households = ?,
+                improved_sanitation_pct = ?, unimproved_sanitation_pct = ?,
+                vulnerability_index = ?, primary_vulnerable_group = ? WHERE id = ?""",
+                (*ward.values(), ward_id),
+            )
+        if not result.rowcount:
+            flash("Ward record not found.", "error")
+        else:
+            flash("Ward survey record updated.", "success")
+    except ValueError as error:
+        flash(str(error), "error")
+    except sqlite3.IntegrityError:
+        flash("A ward with that name already exists.", "error")
+    return redirect(url_for("wards"))
+
+
+@app.post("/wards/<int:ward_id>/update")
+def update_ward(ward_id):
+    coverage_text = request.form.get("improved_sanitation_pct", "")
+    vulnerability = request.form.get("vulnerability_index", "")
+    try:
+        coverage = float(coverage_text)
+        if not 0 <= coverage <= 100:
+            raise ValueError("Coverage must be between 0 and 100.")
+        if vulnerability not in VULNERABILITY_LEVELS:
+            raise ValueError("Choose a valid vulnerability level.")
+        with get_db() as connection:
+            result = connection.execute(
+                """UPDATE wards SET improved_sanitation_pct = ?,
+                unimproved_sanitation_pct = ?, vulnerability_index = ? WHERE id = ?""",
+                (coverage, round(100 - coverage, 2), vulnerability, ward_id),
+            )
+        if not result.rowcount:
+            flash("Ward record not found.", "error")
+        else:
+            flash("Ward coverage and vulnerability updated.", "success")
+    except ValueError as error:
+        flash(str(error), "error")
+    return redirect(url_for("wards"))
+
+
+@app.post("/wards/<int:ward_id>/delete")
+def delete_ward(ward_id):
+    with get_db() as connection:
+        result = connection.execute("DELETE FROM wards WHERE id = ?", (ward_id,))
+    flash(
+        "Ward record deleted." if result.rowcount else "Ward record not found.",
+        "success" if result.rowcount else "error",
+    )
+    return redirect(url_for("wards"))
 
 
 @app.get("/model")
@@ -165,19 +296,75 @@ def interventions():
         programmes = connection.execute(
             "SELECT * FROM interventions ORDER BY programme_name, target_ward"
         ).fetchall()
-    gaps = (
-        ("Uneven coverage across wards", "Compare ward-level coverage before selecting target areas."),
-        ("Limited monitoring of sustained behaviour change", "Track follow-up and sustained household practice."),
-        ("Fragmented information and reporting", "Coordinate programme data using shared indicators."),
-        ("Limited household-level follow-up", "Schedule and record household-level checks."),
-        ("Inadequate maintenance and monitoring", "Plan maintenance responsibilities and review intervals."),
-    )
     return render_template(
         "interventions.html",
         active_page="interventions",
         programmes=programmes,
-        gaps=gaps,
+        statuses=INTERVENTION_STATUSES,
     )
+
+
+@app.post("/interventions/create")
+def create_intervention():
+    programme_name = request.form.get("programme_name", "").strip()
+    target_ward = request.form.get("target_ward", "").strip()
+    lead_agency = request.form.get("lead_agency", "").strip()
+    status = request.form.get("status", "")
+    try:
+        coverage = float(request.form.get("coverage_pct", ""))
+    except ValueError:
+        flash("Coverage must be a number from 0 to 100.", "error")
+        return redirect(url_for("interventions"))
+    if not programme_name or len(programme_name) > 120 or not target_ward or len(target_ward) > 250 or not lead_agency or len(lead_agency) > 120:
+        flash("Enter a programme, assigned ward, and lead agency.", "error")
+    elif status not in INTERVENTION_STATUSES or not 0 <= coverage <= 100:
+        flash("Choose a valid status and coverage from 0 to 100.", "error")
+    else:
+        with get_db() as connection:
+            connection.execute(
+                """INSERT INTO interventions
+                (programme_name, target_ward, status, lead_agency, coverage_pct)
+                VALUES (?, ?, ?, ?, ?)""",
+                (programme_name, target_ward, status, lead_agency, coverage),
+            )
+        flash("Intervention programme added.", "success")
+    return redirect(url_for("interventions"))
+
+
+@app.post("/interventions/<int:intervention_id>/update")
+def update_intervention(intervention_id):
+    status = request.form.get("status", "")
+    if status not in INTERVENTION_STATUSES:
+        flash("Choose a valid intervention status.", "error")
+    else:
+        try:
+            coverage = float(request.form.get("coverage_pct", ""))
+            if not 0 <= coverage <= 100:
+                raise ValueError
+        except ValueError:
+            flash("Coverage must be between 0 and 100.", "error")
+        else:
+            with get_db() as connection:
+                result = connection.execute(
+                    "UPDATE interventions SET status = ?, coverage_pct = ? WHERE id = ?",
+                    (status, coverage, intervention_id),
+                )
+            flash(
+                "Intervention updated." if result.rowcount else "Intervention not found.",
+                "success" if result.rowcount else "error",
+            )
+    return redirect(url_for("interventions"))
+
+
+@app.post("/interventions/<int:intervention_id>/delete")
+def delete_intervention(intervention_id):
+    with get_db() as connection:
+        result = connection.execute("DELETE FROM interventions WHERE id = ?", (intervention_id,))
+    flash(
+        "Intervention deleted." if result.rowcount else "Intervention not found.",
+        "success" if result.rowcount else "error",
+    )
+    return redirect(url_for("interventions"))
 
 
 @app.get("/database")
