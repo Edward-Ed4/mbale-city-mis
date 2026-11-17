@@ -1,13 +1,14 @@
 import csv
 import hmac
 import io
+import math
 import os
 import secrets
 import sqlite3
 
 from flask import Flask, Response, abort, flash, redirect, render_template, request, session, url_for
 
-from database import DATABASE_PATH, get_db, init_db
+from database import DATABASE_PATH, get_db, init_db, vulnerability_for_coverage
 
 
 app = Flask(__name__)
@@ -25,6 +26,7 @@ VULNERABLE_GROUPS = (
     "Persons with disabilities",
     "Informal settlements",
     "Flood-prone communities",
+    "Not specified in source",
 )
 
 BETA_REGRESSION = (
@@ -40,8 +42,14 @@ EXPORTS = {
             ("Ward", "ward_name"),
             ("Division", "division"),
             ("Total households", "total_households"),
+            ("Improved sanitation count", "improved_sanitation_count"),
+            ("Unimproved sanitation count", "unimproved_sanitation_count"),
+            ("Open defecation count", "open_defecation_count"),
             ("Improved sanitation (%)", "improved_sanitation_pct"),
             ("Unimproved sanitation (%)", "unimproved_sanitation_pct"),
+            ("Average household size", "average_household_size"),
+            ("Unemployment rate (%)", "unemployment_rate_pct"),
+            ("Total population", "total_population"),
             ("Vulnerability index", "vulnerability_index"),
             ("Primary vulnerable group", "primary_vulnerable_group"),
         ),
@@ -178,27 +186,45 @@ def _ward_form_data():
     ward_name = request.form.get("ward_name", "").strip()
     division = request.form.get("division", "")
     group = request.form.get("primary_vulnerable_group", "")
-    vulnerability = request.form.get("vulnerability_index", "")
     try:
         households = int(request.form.get("total_households", ""))
-        coverage = float(request.form.get("improved_sanitation_pct", ""))
+        improved_count = int(request.form.get("improved_sanitation_count", ""))
+        unimproved_count = int(request.form.get("unimproved_sanitation_count", ""))
+        average_household_size = float(request.form.get("average_household_size", ""))
+        unemployment_rate_pct = float(request.form.get("unemployment_rate_pct", ""))
+        total_population = int(request.form.get("total_population", ""))
     except ValueError as error:
-        raise ValueError("Households must be a whole number and coverage must be numeric.") from error
+        raise ValueError("Enter valid numeric values for all survey measures.") from error
     if not ward_name or len(ward_name) > 100:
         raise ValueError("Ward name is required and must be 100 characters or fewer.")
-    if division not in DIVISIONS or vulnerability not in VULNERABILITY_LEVELS or group not in VULNERABLE_GROUPS:
-        raise ValueError("Choose valid division, vulnerability, and vulnerable group values.")
-    if households < 1:
-        raise ValueError("Total households must be at least 1.")
-    if not 0 <= coverage <= 100:
-        raise ValueError("Improved sanitation coverage must be between 0 and 100.")
+    if division not in DIVISIONS or group not in VULNERABLE_GROUPS:
+        raise ValueError("Choose a valid division and vulnerable group.")
+    if households < 1 or improved_count < 0 or unimproved_count < 0:
+        raise ValueError("Households must be positive and sanitation counts cannot be negative.")
+    if improved_count + unimproved_count > households:
+        raise ValueError("Improved and unimproved counts cannot exceed total households.")
+    if (
+        not math.isfinite(average_household_size)
+        or not math.isfinite(unemployment_rate_pct)
+        or average_household_size <= 0
+        or not 0 <= unemployment_rate_pct <= 100
+        or total_population < 1
+    ):
+        raise ValueError("Enter a positive household size and population, and unemployment from 0 to 100%.")
+    coverage = round(improved_count / households * 100, 2)
     return {
         "ward_name": ward_name,
         "division": division,
         "total_households": households,
+        "improved_sanitation_count": improved_count,
+        "unimproved_sanitation_count": unimproved_count,
+        "open_defecation_count": households - improved_count - unimproved_count,
         "improved_sanitation_pct": coverage,
-        "unimproved_sanitation_pct": round(100 - coverage, 2),
-        "vulnerability_index": vulnerability,
+        "unimproved_sanitation_pct": round(unimproved_count / households * 100, 2),
+        "average_household_size": average_household_size,
+        "unemployment_rate_pct": unemployment_rate_pct,
+        "total_population": total_population,
+        "vulnerability_index": vulnerability_for_coverage(coverage),
         "primary_vulnerable_group": group,
     }
 
@@ -210,9 +236,12 @@ def create_ward():
         with get_db() as connection:
             connection.execute(
                 """INSERT INTO wards
-                (ward_name, division, total_households, improved_sanitation_pct,
-                 unimproved_sanitation_pct, vulnerability_index, primary_vulnerable_group)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (ward_name, division, total_households, improved_sanitation_count,
+                 unimproved_sanitation_count, open_defecation_count,
+                 improved_sanitation_pct, unimproved_sanitation_pct,
+                 average_household_size, unemployment_rate_pct, total_population,
+                 vulnerability_index, primary_vulnerable_group)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 tuple(ward.values()),
             )
         flash("Ward survey record added.", "success")
@@ -230,7 +259,10 @@ def edit_ward(ward_id):
         with get_db() as connection:
             result = connection.execute(
                 """UPDATE wards SET ward_name = ?, division = ?, total_households = ?,
-                improved_sanitation_pct = ?, unimproved_sanitation_pct = ?,
+                improved_sanitation_count = ?, unimproved_sanitation_count = ?,
+                open_defecation_count = ?, improved_sanitation_pct = ?,
+                unimproved_sanitation_pct = ?, average_household_size = ?,
+                unemployment_rate_pct = ?, total_population = ?,
                 vulnerability_index = ?, primary_vulnerable_group = ? WHERE id = ?""",
                 (*ward.values(), ward_id),
             )
@@ -247,24 +279,41 @@ def edit_ward(ward_id):
 
 @app.post("/wards/<int:ward_id>/update")
 def update_ward(ward_id):
-    coverage_text = request.form.get("improved_sanitation_pct", "")
-    vulnerability = request.form.get("vulnerability_index", "")
+    improved_count_text = request.form.get("improved_sanitation_count", "")
     try:
-        coverage = float(coverage_text)
-        if not 0 <= coverage <= 100:
-            raise ValueError("Coverage must be between 0 and 100.")
-        if vulnerability not in VULNERABILITY_LEVELS:
-            raise ValueError("Choose a valid vulnerability level.")
+        improved_count = int(improved_count_text)
+        if improved_count < 0:
+            raise ValueError("Improved sanitation count cannot be negative.")
         with get_db() as connection:
+            ward = connection.execute(
+                "SELECT total_households FROM wards WHERE id = ?", (ward_id,)
+            ).fetchone()
+            if ward is None:
+                flash("Ward record not found.", "error")
+                return redirect(url_for("wards"))
+            households = ward["total_households"]
+            if improved_count > households:
+                raise ValueError("Improved sanitation count cannot exceed total households.")
+            coverage = round(improved_count / households * 100, 2)
+            unimproved_count = households - improved_count
             result = connection.execute(
-                """UPDATE wards SET improved_sanitation_pct = ?,
-                unimproved_sanitation_pct = ?, vulnerability_index = ? WHERE id = ?""",
-                (coverage, round(100 - coverage, 2), vulnerability, ward_id),
+                """UPDATE wards SET improved_sanitation_count = ?,
+                unimproved_sanitation_count = ?, open_defecation_count = 0,
+                improved_sanitation_pct = ?, unimproved_sanitation_pct = ?,
+                vulnerability_index = ? WHERE id = ?""",
+                (
+                    improved_count,
+                    unimproved_count,
+                    coverage,
+                    round(unimproved_count / households * 100, 2),
+                    vulnerability_for_coverage(coverage),
+                    ward_id,
+                ),
             )
         if not result.rowcount:
             flash("Ward record not found.", "error")
         else:
-            flash("Ward coverage and vulnerability updated.", "success")
+            flash("Ward sanitation counts, coverage, and vulnerability updated.", "success")
     except ValueError as error:
         flash(str(error), "error")
     return redirect(url_for("wards"))
@@ -283,10 +332,17 @@ def delete_ward(ward_id):
 
 @app.get("/model")
 def model():
+    with get_db() as connection:
+        wards = connection.execute(
+            """SELECT ward_name, division, average_household_size, unemployment_rate_pct
+            FROM wards WHERE average_household_size IS NOT NULL
+            AND unemployment_rate_pct IS NOT NULL ORDER BY division, ward_name"""
+        ).fetchall()
     return render_template(
         "model.html",
         active_page="model",
         coefficients=BETA_REGRESSION,
+        wards=wards,
     )
 
 

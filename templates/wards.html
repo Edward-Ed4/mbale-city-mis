@@ -10,20 +10,26 @@
 </div>
 <section class="panel">
   <div class="table-wrap"><table id="ward-table">
-    <thead><tr><th>Ward</th><th>Division</th><th>Households</th><th>Coverage (%)</th><th>Risk</th><th>Vulnerable group</th><th>Quick update</th><th></th></tr></thead>
+    <thead><tr><th>Ward</th><th>Division</th><th>Total households</th><th>Improved count</th><th>Unimproved count</th><th>Open defecation</th><th>Coverage (%)</th><th>Avg. household size</th><th>Unemployment (%)</th><th>Population</th><th>Risk</th><th>Vulnerable group</th><th>Quick update</th><th></th></tr></thead>
     <tbody>{% for ward in wards %}
       <tr data-search="{{ (ward.ward_name ~ ' ' ~ ward.primary_vulnerable_group)|lower }}" data-division="{{ ward.division }}" data-risk="{{ ward.vulnerability_index }}">
         <td><strong>{{ ward.ward_name }}</strong></td><td>{{ ward.division }}</td><td class="number">{{ "{:,}".format(ward.total_households) }}</td>
-        <td class="number">{{ "%.1f"|format(ward.improved_sanitation_pct) }}%</td><td><span class="badge badge-{{ ward.vulnerability_index|lower }}">{{ ward.vulnerability_index }}</span></td><td>{{ ward.primary_vulnerable_group }}</td>
+        <td class="number">{{ "{:,}".format(ward.improved_sanitation_count) if ward.improved_sanitation_count is not none else "—" }}</td>
+        <td class="number">{{ "{:,}".format(ward.unimproved_sanitation_count) if ward.unimproved_sanitation_count is not none else "—" }}</td>
+        <td class="number">{{ "{:,}".format(ward.open_defecation_count) if ward.open_defecation_count is not none else "—" }}</td>
+        <td class="number">{{ "%.2f"|format(ward.improved_sanitation_pct) }}%</td>
+        <td class="number">{{ "%.1f"|format(ward.average_household_size) if ward.average_household_size is not none else "—" }}</td>
+        <td class="number">{{ "%.1f"|format(ward.unemployment_rate_pct) if ward.unemployment_rate_pct is not none else "—" }}</td>
+        <td class="number">{{ "{:,}".format(ward.total_population) if ward.total_population is not none else "—" }}</td>
+        <td><span class="badge badge-{{ ward.vulnerability_index|lower }}">{{ ward.vulnerability_index }}</span></td><td>{{ ward.primary_vulnerable_group }}</td>
         <td><form class="inline-form" method="post" action="{{ url_for('update_ward', ward_id=ward.id) }}">
           <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-          <input aria-label="Coverage percentage" name="improved_sanitation_pct" type="number" min="0" max="100" step="0.1" value="{{ ward.improved_sanitation_pct }}">
-          <select aria-label="Vulnerability" name="vulnerability_index">{% for level in vulnerability_levels %}<option value="{{ level }}" {% if ward.vulnerability_index == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select>
+          <input id="improved-count-{{ ward.id }}" aria-label="Improved sanitation count" name="improved_sanitation_count" type="number" min="0" max="{{ ward.total_households }}" step="1" value="{{ ward.improved_sanitation_count if ward.improved_sanitation_count is not none else 0 }}">
           <button class="btn btn-small" type="submit">Save</button>
         </form></td>
         <td><div class="inline-form"><a class="btn btn-small" href="{{ url_for('wards', edit=ward.id) }}">Edit</a><form method="post" action="{{ url_for('delete_ward', ward_id=ward.id) }}" onsubmit="return confirm('Delete this ward survey record?')"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn btn-small" type="submit">Delete</button></form></div></td>
       </tr>
-    {% else %}<tr><td colspan="8">No ward records available.</td></tr>{% endfor %}</tbody>
+    {% else %}<tr><td colspan="14">No ward records available.</td></tr>{% endfor %}</tbody>
   </table></div>
 </section>
 <div class="modal {% if edit_ward %}open{% endif %}" id="ward-modal" role="dialog" aria-modal="true" aria-labelledby="ward-modal-title" onclick="if(event.target===this)closeWardModal()">
@@ -34,8 +40,11 @@
       <div class="field"><label for="ward-name">Ward name</label><input id="ward-name" name="ward_name" maxlength="100" required value="{{ edit_ward.ward_name if edit_ward else '' }}"></div>
       <div class="field"><label for="ward-division">Division</label><select id="ward-division" name="division" required>{% for division in divisions %}<option value="{{ division }}" {% if edit_ward and edit_ward.division == division %}selected{% endif %}>{{ division }}</option>{% endfor %}</select></div>
       <div class="field"><label for="ward-households">Total households</label><input id="ward-households" name="total_households" type="number" min="1" required value="{{ edit_ward.total_households if edit_ward else 1 }}"></div>
-      <div class="field"><label for="ward-coverage">Improved sanitation (%)</label><input id="ward-coverage" name="improved_sanitation_pct" type="number" min="0" max="100" step="0.01" required value="{{ edit_ward.improved_sanitation_pct if edit_ward else 50 }}"></div>
-      <div class="field"><label for="ward-risk">Vulnerability</label><select id="ward-risk" name="vulnerability_index" required>{% for level in vulnerability_levels %}<option value="{{ level }}" {% if edit_ward and edit_ward.vulnerability_index == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="ward-improved-count">Improved sanitation count</label><input id="ward-improved-count" name="improved_sanitation_count" type="number" min="0" required value="{{ edit_ward.improved_sanitation_count if edit_ward and edit_ward.improved_sanitation_count is not none else 0 }}"></div>
+      <div class="field"><label for="ward-unimproved-count">Unimproved sanitation count</label><input id="ward-unimproved-count" name="unimproved_sanitation_count" type="number" min="0" required value="{{ edit_ward.unimproved_sanitation_count if edit_ward and edit_ward.unimproved_sanitation_count is not none else 0 }}"></div>
+      <div class="field"><label for="ward-household-size">Average household size</label><input id="ward-household-size" name="average_household_size" type="number" min="0.1" step="0.1" required value="{{ edit_ward.average_household_size if edit_ward and edit_ward.average_household_size is not none else 4.0 }}"></div>
+      <div class="field"><label for="ward-unemployment">Unemployment rate (%)</label><input id="ward-unemployment" name="unemployment_rate_pct" type="number" min="0" max="100" step="0.1" required value="{{ edit_ward.unemployment_rate_pct if edit_ward and edit_ward.unemployment_rate_pct is not none else 0 }}"></div>
+      <div class="field"><label for="ward-population">Total population</label><input id="ward-population" name="total_population" type="number" min="1" required value="{{ edit_ward.total_population if edit_ward and edit_ward.total_population is not none else 1 }}"></div>
       <div class="field"><label for="ward-group">Primary vulnerable group</label><select id="ward-group" name="primary_vulnerable_group" required>{% for group in vulnerable_groups %}<option value="{{ group }}" {% if edit_ward and edit_ward.primary_vulnerable_group == group %}selected{% endif %}>{{ group }}</option>{% endfor %}</select></div>
       <div class="form-actions"><a class="btn" href="{{ url_for('wards') }}">Cancel</a><button class="btn btn-primary" type="submit">{{ 'Save changes' if edit_ward else 'Add record' }}</button></div>
     </form>
