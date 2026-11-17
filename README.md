@@ -14,7 +14,7 @@ The city coverage KPI (59.85%), unimproved gap KPI (40.18%), and beta-regression
 4. Start the website: `python app.py`
 5. Open [http://127.0.0.1:5000](http://127.0.0.1:5000).
 
-SQLite is stored beside `database.py` at `mbale_city.db`. The schema is initialized automatically. Default ward and intervention rows are inserted only when their tables are empty. Starting the app again does not overwrite existing rows. Existing intervention tables are migrated to the current status and coverage fields.
+SQLite is stored beside `database.py` at `mbale_city.db`. The schema is initialized automatically. The 19 named ward/cell examples supplied for the two city divisions are seeded when missing; generated `Illustrative Ward` labels and the previous `Naboa Road` row are removed during startup. Additional ward names should be added from a verified Council/UBOS list. Existing measured values for matching named rows are preserved, and missing ward rows receive generated household, coverage, and risk values for the prototype. Existing intervention tables are migrated to the current status and coverage fields.
 
 The optional terminal menu uses the same database: `python cli_menu.py`.
 
