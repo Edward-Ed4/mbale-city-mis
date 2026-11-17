@@ -1,44 +1,48 @@
-# Mbale City Council Information System
+# Mbale City Sanitation Monitoring Portal
 
-A civic information portal for Mbale City Council, with municipal operations reporting and registers for business licences, property rates, and citizen service requests. The web portal and standalone terminal menu use the same SQLite demonstration registry.
+An academic dashboard prototype for **Statistical Analysis of Sanitation Inequalities in Mbale City: A Data-Driven Sanitation Monitoring Dashboard for Evidence-Based Decision-Making**. It presents the citywide sanitation figures and beta-regression results reported in the supplied presentation, along with a searchable ward register, intervention/gap analysis, CSV exports, and a SQLite data explorer.
 
-For a non-technical walkthrough, explanation of dashboard figures, presentation script, and question guide, read [USER_GUIDE_AND_PRESENTATION.md](./USER_GUIDE_AND_PRESENTATION.md).
+Read [USER_GUIDE_AND_PRESENTATION.md](./USER_GUIDE_AND_PRESENTATION.md) for a non-technical page tour and presentation script.
+
+## Important data limitations
+
+- The presentation cites the Bugisu Sub-region Census 2024 Profile Report and reports citywide improved sanitation of **59.85%** and unimproved sanitation of **40.18%**. Verify these against the original publication before formal academic or policy use; the displayed percentages differ from 100% by 0.03 points due to source rounding/reporting.
+- The presentation reports a beta regression based on 58 ward observations but does not include its ward-level source data or full model specification.
+- The seeded ward names beyond the examples supplied, household counts, ward percentages, vulnerability groups, division assignments, and intervention assignments/statuses are **illustrative demonstration data**, not UBOS ward estimates or verified programme records.
+- This prototype has no login or access control. Do not enter real personal, household, or sensitive administrative data.
 
 ## Run locally
 
 1. Install Python 3.10 or later.
-2. Open a terminal in `mbale-city-mis` and create/activate a virtual environment:
-   - Windows: `py -m venv .venv` then `.venv\Scripts\activate`
+2. Open a terminal in this folder and create/activate a virtual environment:
+   - Windows PowerShell: `py -m venv .venv` then `.\.venv\Scripts\Activate.ps1`
    - macOS/Linux: `python3 -m venv .venv` then `source .venv/bin/activate`
 3. Install dependencies: `python -m pip install -r requirements.txt`
 4. Start the website: `python app.py`
-5. Open [http://127.0.0.1:5000](http://127.0.0.1:5000). The database is created and seeded automatically beside `app.py`.
+5. Open [http://127.0.0.1:5000](http://127.0.0.1:5000).
 
-To use the terminal menu in another terminal, activate the same environment and run `python cli_menu.py`.
+SQLite is stored beside `database.py` at `mbale_city.db`. The schema is initialized automatically, and the 58 illustrative ward rows and five example intervention rows are inserted only when their respective tables are empty. Starting the app again does not overwrite existing rows.
 
-## PythonAnywhere free tier (about 3 minutes)
+The optional terminal menu uses the same database: `python cli_menu.py`.
 
-1. Create a free account at PythonAnywhere, open **Consoles → Bash**, clone/upload this folder, then `cd` into `mbale-city-mis`.
-2. Install packages: `pip3 install --user -r requirements.txt`.
-3. Open **Web → Add a new web app → Manual configuration** and choose the matching Python version. In **WSGI configuration file**, replace its contents with `import sys`, `sys.path.insert(0, '/home/YOUR_USERNAME/mbale-city-mis')`, then `from app import app as application` (replace `YOUR_USERNAME` with your account name).
-4. In the web app **Virtualenv** field, set `/home/YOUR_USERNAME/.virtualenvs/mbale-mis` only if you created that virtualenv; otherwise leave it blank if packages were installed with `--user`.
-5. Click **Reload** and open the provided `YOUR_USERNAME.pythonanywhere.com` address. The SQLite file is stored next to `database.py`; keep that directory writable and persistent.
+## Deploy to Render
 
-## Render deployment
+1. Connect the GitHub repository `Edward-Ed4/mbale-city-mis` to Render as a Blueprint.
+2. Let Render read `render.yaml`, then create/deploy the service.
+3. Open the `onrender.com` address shown on the service page.
 
-1. Sign in or create an account at [Render](https://render.com/).
-2. In the Render dashboard, choose **New → Blueprint** and connect the GitHub repository `Edward-Ed4/mbale-city-mis`. If prompted, authorize Render to access that repository.
-3. Render reads `render.yaml` and shows the service settings. Choose **Apply** to create and deploy the free web service.
-4. Wait for the deploy to finish, then open the `onrender.com` URL shown on the service page. Share that link with the person demonstrating the system.
+Render's free service uses an ephemeral filesystem. A restart or deployment can lose SQLite changes; startup then creates fresh illustrative rows. Use a persistent disk or managed database and a backup plan if records must survive deployments. A public instance should not be used for real citizen or household information until authentication, access controls, secure storage, and operational data governance are implemented.
 
-The service uses Gunicorn, checks the dashboard health endpoint, generates a `SECRET_KEY`, and automatically deploys later pushes to the connected branch. Render's free service may take a short time to wake up after inactivity.
+## PythonAnywhere
 
-**Demo data only:** the included SQLite database is seeded automatically, but Render's free filesystem is ephemeral and can be reset when the service restarts or is redeployed. The prototype also has no sign-in screen, so anyone with the public URL can view and change its demo records. Do not enter real citizen, owner, phone, or financial information. For ongoing use, add authentication and move the database to persistent managed storage before sharing operational data.
+Deploy this Flask application using a PythonAnywhere web app configured with `wsgi.py`/`app:app`, or follow the platform's current Flask setup instructions. Ensure the project directory is writable if SQLite changes must persist. Back up the database before replacing code or changing hosting configuration.
 
-## Demo operations and safety
+## Dashboard modules
 
-- Use the sidebar to manage licenses, property payments, citizen service requests, and inspect table structure and row counts.
-- Export business, property, and citizen-request registers as CSV files; print the Municipal Operations Summary as an official statement.
-- The database explorer's **Restore Default Registry** action restores the original sample records.
-- `SECRET_KEY` can be set in the environment; otherwise a process-specific random key is generated.
-- This is a presentation prototype. Before handling real citizen or financial data, add production identity/access controls, CSRF/session configuration, auditing, backups, and a persistent managed database.
+1. **Overview & Problem Statement** — citywide headline, reported benchmark figures, research purpose, and consequences.
+2. **Ward-Level Sanitation Register** — searchable/filterable illustrative rows and CSV export.
+3. **Statistical Beta Regression Model** — coefficients, standard errors, p-values, fit statistics, and interpretation notes.
+4. **Interventions & Gap Analysis** — programme categories and the monitoring gaps from the presentation.
+5. **Census Data Explorer** — SQLite table schemas, row counts, sample records, and data-dictionary CSV.
+
+Every page offers a print action. CSV exports are available for the ward register, model results, interventions, and database data dictionary.
